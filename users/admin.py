@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, ReservedName
 
 
 @admin.register(CustomUser)
@@ -21,3 +21,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('Дополнительная информация', {'fields': ('birth_date',)}),
     )
+
+@admin.register(ReservedName)
+class ReservedNameAdmin(admin.ModelAdmin):
+    ordering = ['username']
