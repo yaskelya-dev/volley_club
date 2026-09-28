@@ -1,0 +1,51 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Редактирование: {{ player.name }} — volleykarelia{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-12 col-md-8 col-lg-6">
+        <!-- Навигационная цепочка (Breadcrumbs) -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'players:list' %}" class="text-decoration-none">Игроки</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Редактирование</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-body-tertiary border-0 pt-3 px-4">
+                <h4 class="card-title fw-bold m-0">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Редактировать игрока
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.name.label }}
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.name.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'players:list' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-save me-1"></i>Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

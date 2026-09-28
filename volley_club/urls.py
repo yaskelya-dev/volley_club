@@ -5,6 +5,7 @@ from home import views as home_views
 urlpatterns = [
     path('', include('home.urls')),
     path('users/', include('users.urls')),
+    path('players/', include('players.urls')),
     path('admin-panel/', admin.site.urls),
 ]
 
