@@ -1,0 +1,28 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+<!-- Кастомный заголовок страницы -->
+{% block title %}Volley Karelia{% endblock %}
+
+<!-- Подключение специфичного CSS для этой страницы -->
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% endblock %}
+
+<!-- Основной контент -->
+{% block content %}
+    <div class="p-5 mb-4 bg-body-tertiary rounded-3 shadow-sm">
+        <div class="container-fluid py-3">
+            <h1 class="display-5 fw-bold">Добро пожаловать в volleykarelia</h1>
+            <p class="col-md-8 fs-4">
+                Портал на котором можно вести учёт волейбольной команды
+            </p>
+            <a class="btn btn-primary btn-lg" href="#">Попробовать</a>
+        </div>
+    </div>
+{% endblock %}
+
+<!-- Специфичные JS-скрипты страницы (если нужно) -->
+{% block extra_js %}
+    <script src="{% static 'js/index.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}volleykarelia{% endblock %}</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Скрипт мгновенной установки темы (предотвращает мигание белым при загрузке) -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            }
+        })();
+    </script>
+
+    <!-- Подключение главного CSS-файла приложения -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <!-- Блок для подключения уникальных CSS конкретной страницы -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Шапка / Верхнее меню -->
+    <header>
+        <nav class="navbar navbar-expand-lg border-bottom sticky-top bg-body-tertiary">
+            <div class="container">
+                <!-- 1. Название сайта (слева) -->
+                <a class="navbar-brand fw-bold text-primary d-flex align-items-center gap-2" href="{% url 'home:index' %}">
+                    <i class="bi bi-dribbble fs-4"></i>
+                    <span>volleykarelia</span>
+                </a>
+
+                <!-- Кнопка "Гамбургер" для мобильных устройств -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Переключить навигацию">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <!-- 4. Навигационные закладки -->
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+<!--                        <li class="nav-item">-->
+<!--                            <a class="nav-link" href="#">Состав команды</a>-->
+<!--                        </li>-->
+<!--                        <li class="nav-item">-->
+<!--                            <a class="nav-link" href="#">Новости</a>-->
+<!--                        </li>-->
+                    </ul>
+
+                    <!-- Правый блок: Переключатель темы и кнопка входа / меню пользователя -->
+                    <div class="d-flex align-items-center gap-3 pt-2 pt-lg-0">
+                        <!-- Переключатель темы -->
+                        <button class="btn btn-link nav-link p-2 text-body" id="themeToggler" type="button" title="Сменить тему">
+                            <i class="bi bi-moon-stars-fill fs-5" id="themeIcon"></i>
+                        </button>
+
+                        {% if user.is_authenticated %}
+                            <!-- Выпадающее меню для авторизованного пользователя -->
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i>
+                                    <span>{{ user.username }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userMenu">
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Профиль</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'users:logout' %}">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Выйти
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <!-- Кнопки для гостей -->
+                            <a href="{% url 'users:login' %}" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                <span>Войти</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Основной контент страницы -->
+    <main class="container my-4 flex-grow-1">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Подвал (Footer) -->
+    <footer class="footer mt-auto py-3 bg-body-tertiary border-top text-center text-muted">
+        <div class="container">
+            <small>&copy; {% now "Y" %} volleykarelia. Все права защищены.</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Логика переключения темы -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggler = document.getElementById('themeToggler');
+            const themeIcon = document.getElementById('themeIcon');
+            const htmlEl = document.documentElement;
+
+            function updateIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'bi bi-sun-fill fs-5 text-warning';
+                } else {
+                    themeIcon.className = 'bi bi-moon-stars-fill fs-5';
+                }
+            }
+
+            // Инициализация иконки при загрузке
+            updateIcon(htmlEl.getAttribute('data-bs-theme'));
+
+            // Клик по переключателю
+            themeToggler.addEventListener('click', () => {
+                const currentTheme = htmlEl.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                htmlEl.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateIcon(newTheme);
+            });
+        });
+    </script>
+
+    <!-- Блок для подключения JS-скриптов конкретной страницы -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -8,13 +8,15 @@ SECRET_KEY = config.SECRET_KEY
 DEBUG = config.DEBUG
 ALLOWED_HOSTS = config.ALLOWED_HOSTS
 
-# AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'users.CustomUser'
 
-# LOGIN_URL = 'users:login'          # Куда отправлять незалогиненных пользователей
-# LOGIN_REDIRECT_URL = 'score:index' # Куда отправлять после успешного входа
-# LOGOUT_REDIRECT_URL = 'users:login'# Куда отправлять после выхода
+LOGIN_URL = 'users:login'          # Куда отправлять незалогиненных пользователей
+LOGIN_REDIRECT_URL = 'home:index' # Куда отправлять после успешного входа
+LOGOUT_REDIRECT_URL = 'home:index' # Куда отправлять после выхода
 
 INSTALLED_APPS = [
+    'users',
+    'home',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -90,13 +92,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = 'ru-ru'
+TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -104,6 +102,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'home' / 'templates' / 'static',
+]
 
 
 # Email
