@@ -1,0 +1,132 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Команда {{ team.title }} — volleykarelia{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'teams:list' %}" class="text-decoration-none">Команды</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ team.title }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4 mb-4">
+    <!-- Изменение названия команды -->
+    <div class="col-12">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <form method="post" class="row g-3 align-items-end" novalidate>
+                    {% csrf_token %}
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <label for="{{ team_form.title.id_for_label }}" class="form-label fw-bold">
+                            Название команды
+                        </label>
+                        {{ team_form.title }}
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                            <i class="bi bi-save me-1"></i>Сохранить название
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Слева: Форма добавления игрока в состав -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-body-tertiary border-0 pt-3 px-3">
+                <h5 class="card-title fw-bold m-0">
+                    <i class="bi bi-person-plus-fill me-2 text-success"></i>Добавить игрока
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if add_player_form.fields.player.queryset.exists %}
+                    <form action="{% url 'teams:add_player' team.pk %}" method="post" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ add_player_form.player.id_for_label }}" class="form-label fw-semibold">
+                                {{ add_player_form.player.label }}
+                            </label>
+                            {{ add_player_form.player }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ add_player_form.number.id_for_label }}" class="form-label fw-semibold">
+                                {{ add_player_form.number.label }}
+                            </label>
+                            {{ add_player_form.number }}
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 fw-semibold">
+                            <i class="bi bi-plus-lg me-1"></i>Добавить в состав
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-check2-circle fs-2 d-block mb-2 text-success"></i>
+                        <p class="mb-0 small">Все ваши доступные игроки уже добавлены в эту команду или у вас еще нет созданных игроков.</p>
+                        <a href="{% url 'players:list' %}" class="btn btn-sm btn-outline-primary mt-3">
+                            <i class="bi bi-person-plus me-1"></i>Создать нового игрока
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Справа: Таблица состава команды -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-body-tertiary border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold m-0">
+                    <i class="bi bi-people-fill me-2 text-primary"></i>Текущий состав
+                </h5>
+                <span class="badge bg-primary fs-6">{{ team_players|length }} чел.</span>
+            </div>
+            <div class="card-body p-0">
+                {% if team_players %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="ps-3" style="width: 80px;">№</th>
+                                    <th scope="col">ФИО Игрока</th>
+                                    <th scope="col" class="text-end pe-3">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in team_players %}
+                                    <tr>
+                                        <td class="ps-3">
+                                            <span class="badge bg-primary fs-6 rounded-pill">#{{ item.number }}</span>
+                                        </td>
+                                        <td class="fw-semibold">{{ item.player.name }}</td>
+                                        <td class="text-end pe-3">
+                                            <form action="{% url 'teams:remove_player' team.pk item.player.pk %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Исключить из команды">
+                                                    <i class="bi bi-person-dash-fill me-1"></i>Убрать
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <i class="bi bi-person-badge fs-1 d-block mb-2"></i>
+                        <p class="mb-0">В этой команде пока нет игроков. Выберите игрока и укажите его номер слева.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

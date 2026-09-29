@@ -1,0 +1,118 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Мои команды — volleykarelia{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold m-0">
+        <i class="bi bi-shield-shaded text-primary me-2"></i>Управление командами
+    </h2>
+    <span class="badge bg-primary fs-6">Всего: {{ teams|length }}</span>
+</div>
+
+<div class="row g-4">
+    <!-- Слева: Форма создания команды -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 rounded-3 sticky-lg-top" style="top: 80px;">
+            <div class="card-header bg-body-tertiary border-0 pt-3 px-3">
+                <h5 class="card-title fw-bold m-0">
+                    <i class="bi bi-plus-circle-fill me-2 text-success"></i>Создать команду
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.title.label }}
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.title.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 fw-semibold">
+                        <i class="bi bi-arrow-right-circle me-1"></i>Создать и перейти к составу
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Справа: Список команд -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-0">
+                {% if teams %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="ps-3" style="width: 50px;">#</th>
+                                    <th scope="col">Название команды</th>
+                                    <th scope="col">Игроков в составе</th>
+                                    <th scope="col" class="text-end pe-3">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in teams %}
+                                    <tr>
+                                        <td class="ps-3 text-muted fw-semibold">{{ forloop.counter }}</td>
+                                        <td class="fw-semibold">{{ team.title }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary rounded-pill">
+                                                {{ team.players.count }} чел.
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'teams:detail' team.pk %}" class="btn btn-outline-primary" title="Управление составом">
+                                                    <i class="bi bi-person-lines-fill me-1"></i>Состав / Изменить
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTeamModal{{ team.pk }}" title="Удалить">
+                                                    <i class="bi bi-trash-fill"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- Модальное окно подтверждения удаления -->
+                                            <div class="modal fade text-start" id="deleteTeamModal{{ team.pk }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title fw-bold">Удаление команды</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            Вы уверены, что хотите удалить команду <strong>"{{ team.title }}"</strong>?
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                                            <form action="{% url 'teams:delete' team.pk %}" method="post" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn btn-danger">Удалить</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <i class="bi bi-shield-x fs-1 d-block mb-2"></i>
+                        <p class="mb-0">У вас пока нет команд. Воспользуйтесь формой слева для создания первой команды.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

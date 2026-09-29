@@ -17,6 +17,7 @@ LOGOUT_REDIRECT_URL = 'home:index' # Куда отправлять после в
 INSTALLED_APPS = [
     'home',
     'users',
+    'teams',
     'players',
     'django.contrib.admin',
     'django.contrib.auth',
