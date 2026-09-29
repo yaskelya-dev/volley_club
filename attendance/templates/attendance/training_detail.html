@@ -1,0 +1,107 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Тренировка {{ training.date|date:"d.m.Y" }} - volleykarelia{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'attendance:list' %}" class="text-decoration-none">Тренировки</a></li>
+        <li class="breadcrumb-item active">{{ training.team.title }} ({{ training.date|date:"d.m.Y" }})</li>
+    </ol>
+</nav>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    <div class="card shadow-sm border-0 rounded-3 mb-4">
+        <div class="card-header bg-body-tertiary border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="fw-bold m-0">
+                    <i class="bi bi-shield-shaded text-primary me-2"></i>{{ training.team.title }}
+                </h4>
+                <span class="text-muted small">Дата: {{ training.date|date:"d.m.Y" }}</span>
+            </div>
+            <button type="submit" class="btn btn-primary fw-semibold">
+                <i class="bi bi-save me-1"></i>Сохранить посещаемость
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {% if records %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="ps-3" style="width: 140px;">Присутствие</th>
+                                <th scope="col">Игрок</th>
+                                <th scope="col" style="width: 300px;">Причина пропуска (если отсутствовал)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input attendance-switch"
+                                                   type="checkbox"
+                                                   name="present_{{ record.id }}"
+                                                   id="present_{{ record.id }}"
+                                                   data-target="reason_select_{{ record.id }}"
+                                                   {% if record.is_present %}checked{% endif %}>
+                                            <label class="form-check-label fw-semibold ms-1" for="present_{{ record.id }}">
+                                                Был
+                                            </label>
+                                        </div>
+                                    </td>
+                                    <td class="fw-semibold">{{ record.player.name }}</td>
+                                    <td class="pe-3">
+                                        <select name="reason_{{ record.id }}"
+                                                id="reason_select_{{ record.id }}"
+                                                class="form-select form-select-sm"
+                                                {% if record.is_present %}disabled{% endif %}>
+                                            <option value="">-- Выберите причину --</option>
+                                            {% for reason in reasons %}
+                                                <option value="{{ reason.id }}" {% if record.reason_id == reason.id %}selected{% endif %}>
+                                                    {{ reason.title }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-5 text-center text-muted">
+                    <p class="mb-0">В составе этой команды нет игроков. Добавьте игроков на странице редактирования команды.</p>
+                </div>
+            {% endif %}
+        </div>
+        <div class="card-footer bg-body-tertiary border-0 text-end py-3">
+            <button type="submit" class="btn btn-primary fw-semibold">
+                <i class="bi bi-save me-1"></i>Сохранить посещаемость
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- JS для автоматического выключения выпадающего списка причин при включенном тумблере "Был" -->
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const switches = document.querySelectorAll('.attendance-switch');
+        switches.forEach(sw => {
+            sw.addEventListener('change', (e) => {
+                const targetId = e.target.getAttribute('data-target');
+                const selectEl = document.getElementById(targetId);
+                if (selectEl) {
+                    selectEl.disabled = e.target.checked;
+                    if (e.target.checked) {
+                        selectEl.value = "";
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
