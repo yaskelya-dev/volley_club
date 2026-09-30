@@ -4,11 +4,12 @@ from home import views as home_views
 
 urlpatterns = [
     path('', include('home.urls')),
+    path('admin-panel/', admin.site.urls),
     path('users/', include('users.urls')),
     path('teams/', include('teams.urls')),
     path('players/', include('players.urls')),
+    path('schedule/', include('schedule.urls')),
     path('attendance/', include('attendance.urls')),
-    path('admin-panel/', admin.site.urls),
 ]
 
 handler404 = home_views.page_not_found_view

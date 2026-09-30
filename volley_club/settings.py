@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'users',
     'teams',
     'players',
+    'schedule',
     'attendance',
     'django.contrib.admin',
     'django.contrib.auth',

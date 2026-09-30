@@ -1,0 +1,150 @@
+{% extends "home/base.html" %}
+
+{% block title %}Расписание соревнований ПГО - volleykarelia{% endblock %}
+
+{% block content %}
+<div class="container py-2">
+    <!-- Заголовок страницы -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-body d-flex align-items-center gap-2">
+                <i class="bi bi-calendar-event text-primary"></i>
+                <span>Расписание игр ПГО</span>
+            </h2>
+            <p class="text-body-secondary mb-0">Отслеживание матчей с сайта <code>volleypgo.ru</code></p>
+        </div>
+    </div>
+
+    <!-- Форма добавления команды -->
+    <div class="card bg-body-tertiary border-body-subtle shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3 text-body">
+                <i class="bi bi-plus-circle text-primary me-1"></i> Добавить команду для отслеживания
+            </h5>
+            <form method="post" class="row g-2 align-items-center">
+                {% csrf_token %}
+                <div class="col-md-9">
+                    {{ form.url }}
+                    {% if form.url.errors %}
+                        <div class="text-danger small mt-1">{{ form.url.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-download"></i>
+                        <span>Отслеживать</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Мои отслеживаемые команды -->
+    {% if user_teams %}
+        <div class="mb-4">
+            <h6 class="text-uppercase text-body-secondary fw-bold small mb-2">Отслеживаемые команды:</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for team in user_teams %}
+                    <div class="badge bg-body-secondary text-body border border-body-subtle p-2 d-flex align-items-center gap-2 fs-6 fw-normal">
+                        <span class="fw-bold">{{ team.name }}</span>
+                        {% if team.league %}
+                            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ team.league }}</span>
+                        {% endif %}
+                        <a href="{% url 'schedule:refresh_team' team.id %}" class="text-primary ms-1" title="Обновить данные">
+                            <i class="bi bi-arrow-repeat fs-6"></i>
+                        </a>
+                        <a href="{% url 'schedule:remove_team' team.id %}" class="text-danger ms-1" title="Удалить из списка">
+                            <i class="bi bi-x-circle fs-6"></i>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Вкладки игр -->
+        <ul class="nav nav-tabs mb-4 border-body-subtle" id="gamesTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold d-flex align-items-center gap-2" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+                    <i class="bi bi-clock-history text-primary"></i>
+                    <span>Предстоящие игры</span>
+                    <span class="badge bg-primary rounded-pill">{{ upcoming_games|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold d-flex align-items-center gap-2" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
+                    <i class="bi bi-check2-circle text-success"></i>
+                    <span>Завершённые игры</span>
+                    <span class="badge bg-secondary rounded-pill">{{ completed_games|length }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="gamesTabContent">
+            <!-- Предстоящие игры -->
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+                {% if upcoming_games %}
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for game in upcoming_games %}
+                            <div class="col">
+                                <div class="card h-100 bg-body-tertiary border-start border-4 border-primary border-body-subtle shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center text-body-secondary small mb-2">
+                                            <span><i class="bi bi-shield-shield me-1"></i>{{ game.team.name }}</span>
+                                            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ game.team.league }}</span>
+                                        </div>
+                                        <h5 class="card-title fw-bold text-body mb-2">{{ game.matchup_text }}</h5>
+                                        <p class="card-text text-body-secondary mb-0 small">
+                                            <i class="bi bi-calendar3 me-1 text-primary"></i> {{ game.date_str }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info bg-info-subtle text-info-emphasis border-info-subtle">
+                        <i class="bi bi-info-circle me-2"></i>Нет запланированных предстоящих игр у отслеживаемых команд.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Завершённые игры -->
+            <div class="tab-pane fade" id="completed" role="tabpanel">
+                {% if completed_games %}
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for game in completed_games %}
+                            <div class="col">
+                                <div class="card h-100 bg-body-tertiary border-start border-4 border-secondary border-body-subtle shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center text-body-secondary small mb-2">
+                                            <span><i class="bi bi-shield-shield me-1"></i>{{ game.team.name }}</span>
+                                            <span class="badge bg-body-secondary text-body-secondary border border-body-subtle">{{ game.date_str }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <h6 class="fw-bold text-body mb-0">{{ game.matchup_text }}</h6>
+                                            <span class="badge bg-body-emphasis text-body border border-body-subtle fs-6 px-3 py-2 fw-bold">
+                                                {{ game.score }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-secondary bg-secondary-subtle text-secondary-emphasis border-secondary-subtle">
+                        <i class="bi bi-info-circle me-2"></i>Нет информации о завершённых играх.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <!-- Пустое состояние -->
+        <div class="text-center py-5 bg-body-tertiary rounded-3 border border-body-subtle shadow-sm">
+            <i class="bi bi-trophy display-1 text-body-secondary mb-3 d-block"></i>
+            <h4 class="fw-bold text-body">Вы пока не отслеживаете ни одну команду</h4>
+            <p class="text-body-secondary mb-0">Вставьте ссылку на страницу команды с сайта <code>volleypgo.ru</code> выше, чтобы видеть расписание её матчей.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
