@@ -40,6 +40,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'volley_club.urls'
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://volleykarelia.ru',
+    'https://www.volleykarelia.ru',
+]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
