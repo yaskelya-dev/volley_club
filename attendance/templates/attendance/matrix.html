@@ -132,11 +132,11 @@
                                         <td>
                                             {% if status.is_present %}
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                                    <i class="bi bi-check-circle-fill me-1"></i>Был
+                                                    Был
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle" title="{{ status.reason.title|default:'Отсутствовал' }}">
-                                                    <i class="bi bi-x-circle-fill me-1"></i>{{ status.reason.title|default:"Н/Я" }}
+                                                    {{ status.reason.title|default:"Н/Я" }}
                                                 </span>
                                             {% endif %}
                                         </td>
