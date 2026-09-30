@@ -8,7 +8,7 @@ class AbsenceReason(models.Model):
     title = models.CharField(max_length=100, verbose_name="Причина пропуска")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="absence_reasons",
@@ -35,7 +35,9 @@ class Training(models.Model):
     date = models.DateField(verbose_name="Дата тренировки")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="trainings",
         verbose_name="Кто создал"
     )

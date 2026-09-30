@@ -4,108 +4,137 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import Training, AttendanceRecord, AbsenceReason
 from .forms import TrainingForm, AbsenceReasonForm
+from teams.models import Team
 
 
 @login_required
-def training_list_view(request):
-    """Список всех тренировок и создание новой"""
-    if request.method == 'POST':
-        form = TrainingForm(request.POST, user=request.user)
-        if form.is_valid():
-            training = form.save(commit=False)
-            training.created_by = request.user
-            training.save()
+def attendance_matrix_view(request):
+    """Единый рабочий стол посещаемости с матричной таблицей."""
+    user_teams = Team.objects.filter(owner=request.user).order_by('title')
 
-            # Автоматически создаем записи посещаемости для всех игроков команды
-            team_players = training.team.team_players.all()
-            records = [
-                AttendanceRecord(training=training, player=tp.player, is_present=True)
-                for tp in team_players
-            ]
-            AttendanceRecord.objects.bulk_create(records)
+    if not user_teams.exists():
+        return render(request, 'attendance/matrix.html', {'teams': []})
 
-            messages.success(request, 'Тренировка создана! Отметьте отсутствующих.')
-            return redirect('attendance:detail', pk=training.pk)
+    # Определяем текущую выбранную команду
+    selected_team_id = request.GET.get('team') or request.POST.get('team_id')
+    if selected_team_id:
+        current_team = get_object_or_404(Team, id=selected_team_id, owner=request.user)
     else:
-        form = TrainingForm(user=request.user)
+        current_team = user_teams.first()
 
-    trainings = Training.objects.filter(created_by=request.user).select_related('team')
-
-    return render(request, 'attendance/training_list.html', {
-        'trainings': trainings,
-        'form': form,
-    })
-
-
-@login_required
-def training_detail_view(request, pk):
-    """Страница отметки посещаемости игрока на тренировке"""
-    training = get_object_or_404(Training, pk=pk, created_by=request.user)
-
+    # --- ОБРАБОТКА POST-ЗАПРОСОВ ---
     if request.method == 'POST':
-        # Сохранение статуса посещаемости игроков
-        records = training.records.select_related('player')
+        action = request.POST.get('action')
 
-        for record in records:
-            # Чекбокс присутствия
-            is_present = f'present_{record.id}' in request.POST
-            reason_id = request.POST.get(f'reason_{record.id}')
+        # 1. Добавление новой тренировки
+        if action == 'add_training':
+            training_form = TrainingForm(request.POST, user=request.user)
+            if training_form.is_valid():
+                training = training_form.save(commit=False)
+                training.created_by = request.user
+                training.save()
 
-            record.is_present = is_present
-            if not is_present and reason_id:
-                record.reason_id = reason_id
-            else:
-                record.reason = None
+                # Автосоздание записей "Был" для всех игроков команды
+                team_players = training.team.team_players.all()
+                records = [
+                    AttendanceRecord(training=training, player=tp.player, is_present=True)
+                    for tp in team_players
+                ]
+                AttendanceRecord.objects.bulk_create(records)
 
-            record.save()
+                messages.success(request, f'Тренировка на {training.date.strftime("%d.%m.%Y")} добавлена!')
+                return redirect(f"{request.path}?team={training.team.id}")
 
-        messages.success(request, 'Данные о посещаемости успешно сохранены!')
-        return redirect('attendance:detail', pk=training.pk)
+        # 2. Быстрое добавление новой причины пропуска
+        elif action == 'add_reason':
+            reason_form = AbsenceReasonForm(request.POST)
+            if reason_form.is_valid():
+                reason = reason_form.save(commit=False)
+                reason.created_by = request.user
+                reason.is_default = False
+                reason.save()
+                messages.success(request, f'Причина "{reason.title}" успешно добавлена!')
+                return redirect(f"{request.path}?team={current_team.id}")
 
-    records = training.records.select_related('player', 'reason').order_by('player__name')
+        # 3. Сохранение посещаемости для конкретной тренировки (из модального окна)
+        elif action == 'update_attendance':
+            training_id = request.POST.get('training_id')
+            training = get_object_or_404(Training, id=training_id, created_by=request.user)
+            records = training.records.select_related('player')
 
-    # Причины пропусков: системные + созданные пользователем
+            for record in records:
+                is_present = f'present_{record.id}' in request.POST
+                reason_id = request.POST.get(f'reason_{record.id}')
+
+                record.is_present = is_present
+                if not is_present and reason_id:
+                    record.reason_id = reason_id
+                else:
+                    record.reason = None
+                record.save()
+
+            messages.success(request, f'Посещаемость за {training.date.strftime("%d.%m.%Y")} обновлена.')
+            return redirect(f"{request.path}?team={current_team.id}")
+
+    # --- ФОРМИРОВАНИЕ СТРУКТУРЫ МАТРИЦЫ ---
+    # Список игроков выбранной команды (упорядочен по номеру)
+    team_players = current_team.team_players.select_related('player').order_by('number')
+    players = [tp.player for tp in team_players]
+
+    # Все тренировки выбранной команды по возрастанию даты
+    trainings = Training.objects.filter(team=current_team).order_by('date')
+
+    # Загружаем все записи посещаемости и создаем карту (training_id, player_id) -> record
+    records = AttendanceRecord.objects.filter(
+        training__in=trainings
+    ).select_related('reason')
+
+    attendance_map = {(r.training_id, r.player_id): r for r in records}
+
+    # Сборка строк таблицы-матрицы
+    matrix_rows = []
+    for idx, training in enumerate(trainings, start=1):
+        player_statuses = []
+        for player in players:
+            rec = attendance_map.get((training.id, player.id))
+            player_statuses.append({
+                'player_id': player.id,
+                'record': rec,
+                'is_present': rec.is_present if rec else True,
+                'reason': rec.reason if rec else None
+            })
+
+        matrix_rows.append({
+            'number': idx,
+            'training': training,
+            'player_statuses': player_statuses
+        })
+
+    # Причины пропусков для выбора в модальном окне
     reasons = AbsenceReason.objects.filter(
         Q(is_default=True) | Q(created_by=request.user)
     )
 
-    return render(request, 'attendance/training_detail.html', {
-        'training': training,
-        'records': records,
+    training_form = TrainingForm(user=request.user, initial={'team': current_team})
+    reason_form = AbsenceReasonForm()
+
+    return render(request, 'attendance/matrix.html', {
+        'teams': user_teams,
+        'current_team': current_team,
+        'players': players,
+        'matrix_rows': matrix_rows,
         'reasons': reasons,
+        'training_form': training_form,
+        'reason_form': reason_form,
     })
 
 
 @login_required
 def training_delete_view(request, pk):
-    """Удаление тренировки"""
+    """Удаление тренировки."""
     training = get_object_or_404(Training, pk=pk, created_by=request.user)
+    team_id = training.team.id
     if request.method == 'POST':
         training.delete()
-        messages.success(request, 'Запись о тренировке удалена.')
-    return redirect('attendance:list')
-
-
-@login_required
-def reason_list_view(request):
-    """Управление причинами пропусков (добавление новых)"""
-    if request.method == 'POST':
-        form = AbsenceReasonForm(request.POST)
-        if form.is_valid():
-            reason = form.save(commit=False)
-            reason.created_by = request.user
-            reason.is_default = False
-            reason.save()
-            messages.success(request, f'Причина "{reason.title}" добавлена!')
-            return redirect('attendance:reasons')
-    else:
-        form = AbsenceReasonForm()
-
-    reasons = AbsenceReason.objects.filter(
-        Q(is_default=True) | Q(created_by=request.user)
-    )
-
-    return render(request, 'attendance/reason_list.html', {
-        'reasons': reasons,
-        'form': form,
-    })
+        messages.success(request, 'Тренировка удалена.')
+    return redirect(f"/attendance/?team={team_id}")
