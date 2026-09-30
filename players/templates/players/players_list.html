@@ -2,9 +2,22 @@
 
 {% block title %}Мои игроки - volleykarelia{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Включаем "липкость" формы и изолируем слои (z-index) только на ПК-версии */
+    @media (min-width: 992px) {
+        .sticky-custom-lg {
+            position: sticky;
+            top: 80px;
+            z-index: 10;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold m-0">
+    <h2 class="fw-bold m-0 text-body">
         <i class="bi bi-people-fill text-primary me-2"></i>Управление игроками
     </h2>
     <span class="badge bg-primary fs-6">Всего: {{ players|length }}</span>
@@ -12,10 +25,12 @@
 
 <div class="row g-4">
     <!-- Слева: Форма добавления игрока -->
-    <div class="col-12 col-lg-4">
-        <div class="card shadow-sm border-0 rounded-3 sticky-lg-top" style="top: 80px;">
-            <div class="card-header bg-body-tertiary border-0 pt-3 px-3">
-                <h5 class="card-title fw-bold m-0">
+    <!-- order-1 и mb-4 гарантируют, что на мобильном форма встанет сверху с отступом, а таблица уйдет под нее и не налезет -->
+    <div class="col-12 col-lg-4 order-1 order-lg-1 mb-4 mb-lg-0">
+        <div class="card shadow-sm border-0 rounded-3 sticky-custom-lg">
+            <!-- ИСПРАВЛЕНО: Убран жесткий bg-body-tertiary, теперь фон шапки прозрачный/адаптивный под тему -->
+            <div class="card-header bg-transparent border-0 pt-3 px-3">
+                <h5 class="card-title fw-bold m-0 text-body">
                     <i class="bi bi-person-plus-fill me-2 text-success"></i>Добавить игрока
                 </h5>
             </div>
@@ -24,9 +39,10 @@
                     {% csrf_token %}
 
                     <div class="mb-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold text-body">
                             {{ form.name.label }}
                         </label>
+                        <!-- Поля ввода Django автоматически подхватят цвета темы, если у них есть класс form-control -->
                         {{ form.name }}
                         {% if form.name.errors %}
                             <div class="text-danger small mt-1">
@@ -43,25 +59,26 @@
         </div>
     </div>
 
-    <!-- Справа: Список игроков (в алфавитном порядке) -->
-    <div class="col-12 col-lg-8">
+    <!-- Справа: Список игроков -->
+    <div class="col-12 col-lg-8 order-2 order-lg-2">
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-body p-0">
                 {% if players %}
                     <div class="table-responsive">
+                        <!-- Нативная таблица Bootstrap 5.3 идеально подстраивается под темную тему сама -->
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
-                                    <th scope="col" class="ps-3" style="width: 60px;">#</th>
-                                    <th scope="col">ФИО Игрока</th>
-                                    <th scope="col" class="text-end pe-3">Действия</th>
+                                    <th scope="col" class="ps-3 text-body" style="width: 60px;">#</th>
+                                    <th scope="col" class="text-body">ФИО Игрока</th>
+                                    <th scope="col" class="text-end pe-3 text-body">Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for player in players %}
                                     <tr>
                                         <td class="ps-3 text-muted fw-semibold">{{ forloop.counter }}</td>
-                                        <td class="fw-semibold">{{ player.name }}</td>
+                                        <td class="fw-semibold text-body">{{ player.name }}</td>
                                         <td class="text-end pe-3">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <!-- Кнопка редактирования -->
@@ -74,15 +91,15 @@
                                                 </button>
                                             </div>
 
-                                            <!-- Модальное окно подтверждения удаления -->
+                                            <!-- Модальное окно подтверждения удаления (уже имеет встроенную поддержку тем в BS 5.3) -->
                                             <div class="modal fade text-start" id="deleteModal{{ player.pk }}" tabindex="-1" aria-hidden="true">
                                                 <div class="modal-dialog modal-dialog-centered">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
-                                                            <h5 class="modal-title fw-bold">Удаление игрока</h5>
+                                                            <h5 class="modal-title fw-bold text-body">Удаление игрока</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                                                         </div>
-                                                        <div class="modal-body">
+                                                        <div class="modal-body text-body">
                                                             Вы уверены, что хотите удалить игрока <strong>"{{ player.name }}"</strong>?
                                                         </div>
                                                         <div class="modal-footer">
