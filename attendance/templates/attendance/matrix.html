@@ -114,7 +114,7 @@
                                 <!-- Колонки игроков делят оставшееся пространство поровну -->
                                 {% for player in players %}
                                     <th scope="col" class="fw-bold player-header" title="{{ player.name }}">
-                                        {{ player.name }}
+{{ player.name|truncatewords:1|slice:":-3" }}
                                     </th>
                                 {% endfor %}
 

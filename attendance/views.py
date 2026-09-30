@@ -78,7 +78,7 @@ def attendance_matrix_view(request):
 
     # --- ФОРМИРОВАНИЕ СТРУКТУРЫ МАТРИЦЫ ---
     # Список игроков выбранной команды (упорядочен по номеру)
-    team_players = current_team.team_players.select_related('player').order_by('number')
+    team_players = current_team.team_players.select_related('player').order_by('player__name')
     players = [tp.player for tp in team_players]
 
     # Все тренировки выбранной команды по возрастанию даты
