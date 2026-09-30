@@ -10,3 +10,4 @@ __pycache__/
 backup_data.json
 */allowed.py
 staticfiles/
+data_backup.json
