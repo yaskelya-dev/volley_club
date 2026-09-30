@@ -10,9 +10,9 @@ services:
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    # command: python manage.py runserver 0.0.0.0:8000
     # Для продакшена лучше использовать gunicorn:
-    # command: gunicorn myproject.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn volley_club.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - .:/app
     ports:
