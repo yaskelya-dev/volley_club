@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.urls import reverse
+
 from .models import Training, AttendanceRecord, AbsenceReason
 from .forms import TrainingForm, AbsenceReasonForm
 from teams.models import Team
@@ -137,4 +139,43 @@ def training_delete_view(request, pk):
     if request.method == 'POST':
         training.delete()
         messages.success(request, 'Тренировка удалена.')
-    return redirect(f"/attendance/?team={team_id}")
+    return redirect(f"{reverse('attendance:list')}?team={team_id}")
+
+
+@login_required
+def reason_edit_view(request, pk):
+    """Редактирование пользовательской причины пропуска."""
+    reason = get_object_or_404(AbsenceReason, pk=pk, created_by=request.user, is_default=False)
+    team_id = request.GET.get('team') or request.POST.get('team_id')
+
+    if request.method == 'POST':
+        form = AbsenceReasonForm(request.POST, instance=reason)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Причина "{reason.title}" успешно обновлена.')
+        else:
+            messages.error(request, 'Ошибка при редактировании причины.')
+
+    redirect_url = reverse('attendance:list')
+    if team_id:
+        redirect_url += f'?team={team_id}'
+    return redirect(redirect_url)
+
+
+@login_required
+def reason_delete_view(request, pk):
+    """Удаление пользовательской причины пропуска."""
+    reason = get_object_or_404(AbsenceReason, pk=pk, created_by=request.user, is_default=False)
+    team_id = request.GET.get('team') or request.POST.get('team_id')
+
+    if request.method == 'POST':
+        title = reason.title
+        # Так как в AttendanceRecord у поля reason стоит on_delete=models.SET_NULL,
+        # у связанных записей поле причиной станет None (Н/Я)
+        reason.delete()
+        messages.success(request, f'Причина "{title}" удалена.')
+
+    redirect_url = reverse('attendance:list')
+    if team_id:
+        redirect_url += f'?team={team_id}'
+    return redirect(redirect_url)

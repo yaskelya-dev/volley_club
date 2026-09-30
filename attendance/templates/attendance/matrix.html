@@ -56,8 +56,8 @@
             <button type="button" class="btn btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#addTrainingModal">
                 <i class="bi bi-calendar-plus me-1"></i>Тренировка
             </button>
-            <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-toggle="modal" data-bs-target="#addReasonModal">
-                <i class="bi bi-plus-circle me-1"></i>Причина
+            <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-toggle="modal" data-bs-target="#manageReasonsModal">
+                <i class="bi bi-gear me-1"></i>Причины пропусков
             </button>
         </div>
     {% endif %}
@@ -285,32 +285,137 @@
     </div>
 </div>
 
-<!-- MODAL: Добавление причины пропуска -->
-<div class="modal fade" id="addReasonModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- MODAL: Управление причинами пропуска -->
+<div class="modal fade" id="manageReasonsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_reason">
-                <input type="hidden" name="team_id" value="{{ current_team.id }}">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Добавить причину пропуска</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="{{ reason_form.title.id_for_label }}" class="form-label fw-semibold">Название причины</label>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Причины пропусков</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Форма быстрого добавления -->
+                <form method="post" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_reason">
+                    <input type="hidden" name="team_id" value="{{ current_team.id }}">
+                    <label for="{{ reason_form.title.id_for_label }}" class="form-label fw-semibold">Добавить новую причину</label>
+                    <div class="input-group">
                         {{ reason_form.title }}
+                        <button type="submit" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-plus-lg me-1"></i>Добавить
+                        </button>
                     </div>
+                </form>
+
+                <hr>
+
+                <!-- Список причин -->
+                <h6 class="fw-bold mb-3">Существующие причины:</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Название</th>
+                                <th style="width: 140px;" class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reason in reasons %}
+                                <tr>
+                                    <td>
+                                        <span class="fw-semibold">{{ reason.title }}</span>
+                                        {% if reason.is_default %}
+                                            <span class="badge bg-secondary-subtle text-secondary ms-2 border">Системная</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if not reason.is_default and reason.created_by == request.user %}
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary px-2" data-bs-toggle="modal" data-bs-target="#editReasonModal{{ reason.id }}" title="Редактировать">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger px-2" data-bs-toggle="modal" data-bs-target="#deleteReasonModal{{ reason.id }}" title="Удалить">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted small"><em>—</em></span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-3">Причины не найдены</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary fw-semibold">Добавить причину</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- МОДАЛЬНЫЕ ОКНА ДЛЯ РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ПРИЧИН -->
+{% for reason in reasons %}
+    {% if not reason.is_default and reason.created_by == request.user %}
+        <!-- Модальное окно редактирования причины -->
+        <div class="modal fade text-start" id="editReasonModal{{ reason.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form action="{% url 'attendance:reason_edit' reason.id %}?team={{ current_team.id }}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="team_id" value="{{ current_team.id }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Редактировать причину</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Название причины</label>
+                                <input type="text" name="title" value="{{ reason.title }}" class="form-control" required maxlength="100">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-primary fw-semibold">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно удаления причины -->
+        <div class="modal fade text-start" id="deleteReasonModal{{ reason.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Удаление причины</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Удалить причину пропуска <strong>"{{ reason.title }}"</strong>?
+                        <p class="text-muted small mt-2 mb-0">
+                            У всех прошлых записей посещаемости с этой причиной отметка изменится на «Н/Я».
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form action="{% url 'attendance:reason_delete' reason.id %}?team={{ current_team.id }}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="team_id" value="{{ current_team.id }}">
+                            <button type="submit" class="btn btn-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
 {% endblock %}
 
 {% block extra_js %}
