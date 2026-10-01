@@ -70,7 +70,7 @@
                     <div class="d-flex align-items-center gap-3 pt-2 pt-lg-0">
                         <!-- Переключатель темы -->
                         <button class="btn btn-link nav-link p-2 text-body" id="themeToggler" type="button" title="Сменить тему">
-                            <i class="bi bi-moon-stars-fill fs-5" id="themeIcon"></i>
+                            <i class="bi bi-moon-fill fs-5" id="themeIcon"></i>
                         </button>
 
                         {% if user.is_authenticated %}
@@ -138,8 +138,10 @@
             function updateIcon(theme) {
                 if (theme === 'dark') {
                     themeIcon.className = 'bi bi-sun-fill fs-5 text-warning';
+                    themeIcon.style.setProperty('color', 'rgb(var(--bs-warning-rgb))', 'important');
                 } else {
-                    themeIcon.className = 'bi bi-moon-stars-fill fs-5 text-black';
+                    themeIcon.className = 'bi bi-moon-fill fs-5';
+                    themeIcon.style.setProperty('color', 'rgb(13, 110, 253)', 'important');
                 }
             }
 
