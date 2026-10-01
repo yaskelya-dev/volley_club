@@ -1,98 +1,115 @@
 import requests
-from bs4 import BeautifulSoup
+from django.db import transaction
 from .models import TrackedTeam, Game
 
+# Замените на прямые ссылки на JSON-файлы с вашего сервера/сайта
+TEAMS_JSON_URL = 'https://volleypgo.ru/s-26-27/teams.json'
+SCHEDULE_JSON_URL = 'https://volleypgo.ru/s-26-27/schedule.json'
 
-def parse_and_update_team(url: str, user=None) -> TrackedTeam:
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+}
+
+
+def _fetch_json(url: str) -> dict:
+    """Вспомогательная функция для загрузки JSON по URL."""
+    response = requests.get(url, headers=HEADERS, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
+
+def _extract_team_info(input_str: str, teams_list: list) -> dict:
+    """
+    Ищет команду в списке по ID, названию или совпадению фрагмента URL.
+    """
+    clean_input = input_str.strip().lower()
+
+    # 1. Точное совпадение по ID команды
+    for team in teams_list:
+        if team.get("id", "").lower() == clean_input:
+            return team
+
+    # 2. Поиск ID внутри переданного URL (например: https://site.com/teams/mfcn)
+    for team in teams_list:
+        team_id = team.get("id", "").lower()
+        if team_id and team_id in clean_input:
+            return team
+
+    # 3. Совпадение по названию команды
+    for team in teams_list:
+        if team.get("name", "").lower() == clean_input:
+            return team
+
+    raise ValueError(f"Команда по запросу '{input_str}' не найдена в базе данных сайта.")
+
+
+def update_team_data_from_json(url_or_id: str, user=None) -> TrackedTeam:
+    teams_data = _fetch_json(TEAMS_JSON_URL)
+    schedule_data = _fetch_json(SCHEDULE_JSON_URL)
+
+    # Карта названий лиг: {"men-1": "1 мужская лига", ...}
+    leagues_map = {
+        league["id"]: league["name"]
+        for league in teams_data.get("leagues", [])
     }
 
-    response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()
+    # Поиск команды в полученном JSON
+    target_team = _extract_team_info(url_or_id, teams_data.get("teams", []))
+    team_id_slug = target_team["id"]
+    team_name = target_team["name"]
+    league_name = leagues_map.get(target_team.get("leagueId"), "")
 
-    soup = BeautifulSoup(response.content, 'html.parser')
+    with transaction.atomic():
+        # Создание или обновление отслеживаемой команды
+        team_obj, _ = TrackedTeam.objects.get_or_create(
+            url=url_or_id,
+            defaults={
+                'name': team_name,
+                'league': league_name,
+            }
+        )
 
-    # 1. Извлечение названия команды и лиги
-    main_elem = soup.find('main', id='team-page')
-    team_name = main_elem.get('data-team-name') if main_elem else None
+        team_obj.name = team_name
+        team_obj.league = league_name
 
-    if not team_name:
-        h1 = soup.find('h1')
-        team_name = h1.text.strip() if h1 else 'Неизвестная команда'
+        if user and user.is_authenticated:
+            team_obj.users.add(user)
 
-    league_name = main_elem.get('data-league-name') if main_elem else ''
-    if not league_name:
-        meta_div = soup.find('div', class_='meta')
-        if meta_div:
-            league_name = meta_div.text.strip().split('·')[0].strip()
+        team_obj.save()
 
-    # 2. Создаем или получаем отслеживаемую команду (get_or_create)
-    team, created = TrackedTeam.objects.get_or_create(
-        url=url,
-        defaults={
-            'name': team_name,
-            'league': league_name,
-        }
-    )
+        # Полная актуализация списка игр
+        team_obj.games.all().delete()
 
-    # Обновляем мета-данные
-    team.name = team_name
-    team.league = league_name
+        games_to_create = []
+        for g in schedule_data.get("games", []):
+            # Проверка участия команды в игре
+            if g.get("team1Id") == team_id_slug or g.get("team2Id") == team_id_slug:
 
-    if user and user.is_authenticated:
-        team.users.add(user)
-    team.save()
+                matchup_text = f"{g['team1']} — {g['team2']}"
+                date_str = f"{g.get('date', '')} {g.get('time', '')}".strip()
 
-    # 3. Обновление расписания игр
-    # Для простоты очистим предыдущие сохраненные игры команды и перезапишем актуальными
-    team.games.all().delete()
+                # Счёт формируется при его наличии
+                score_str = ""
+                if g.get("score1") is not None and g.get("score2") is not None:
+                    score_str = f"{g['score1']}:{g['score2']}"
 
-    # --- Предстоящие игры ---
-    upcoming_div = soup.find('div', id='upcoming-games')
-    if upcoming_div:
-        for article in upcoming_div.find_all('article', class_='game'):
-            teams_div = article.find('div', class_='game-teams')
-            date_div = article.find('div', class_='game-date')
+                # Маппинг статусов
+                raw_status = g.get("status", "")
+                if raw_status == "Завершён":
+                    status = Game.GameStatus.COMPLETED
+                else:
+                    status = Game.GameStatus.UPCOMING
 
-            matchup = teams_div.text.strip() if teams_div else ''
-            game_date = date_div.text.strip() if date_div else ''
-
-            if matchup and game_date:
-                Game.objects.create(
-                    team=team,
-                    status=Game.GameStatus.UPCOMING,
-                    matchup_text=matchup,
-                    date_str=game_date
+                games_to_create.append(
+                    Game(
+                        team=team_obj,
+                        status=status,
+                        matchup_text=matchup_text,
+                        date_str=date_str,
+                        score=score_str
+                    )
                 )
 
-    # --- Завершённые игры ---
-    completed_div = soup.find('div', id='completed-games')
-    if completed_div:
-        for article in completed_div.find_all('article', class_='completed-game'):
-            date_div = article.find('div', class_='completed-game-date')
-            matchup_div = article.find('div', class_='completed-game-matchup')
-            score_div = article.find('div', class_='completed-game-score')
+        Game.objects.bulk_create(games_to_create)
 
-            game_date = date_div.text.strip() if date_div else ''
-            score = score_div.text.strip() if score_div else ''
-
-            # Извлекаем названия команд из блоков home и away
-            home_team = matchup_div.find('div', class_='completed-game-team home') if matchup_div else None
-            away_team = matchup_div.find('div', class_='completed-game-team away') if matchup_div else None
-
-            home_name = home_team.text.strip() if home_team else ''
-            away_name = away_team.text.strip() if away_team else ''
-
-            matchup = f"{home_name} — {away_name}".strip(" —")
-
-            if matchup and game_date:
-                Game.objects.create(
-                    team=team,
-                    status=Game.GameStatus.COMPLETED,
-                    matchup_text=matchup,
-                    date_str=game_date,
-                    score=score
-                )
-
-    return team
+    return team_obj

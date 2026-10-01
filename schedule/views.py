@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import TrackedTeam, Game
 from .forms import AddTrackedTeamForm
-from .services import parse_and_update_team
+from .services import update_team_data_from_json
 
 
 @login_required
@@ -15,16 +15,16 @@ def schedule_index(request):
         if form.is_valid():
             url = form.cleaned_data['url']
             try:
-                team = parse_and_update_team(url, user=request.user)
+                team = update_team_data_from_json(url, user=request.user)
                 messages.success(request, f'Команда "{team.name}" успешно добавлена в отслеживаемые!')
                 return redirect('schedule:index')
             except Exception as e:
-                messages.error(request, f'Ошибка при получении данных с сайта: {e}')
+                messages.error(request, f'Ошибка при получении данных: {e}')
 
     # Получаем команды, отслеживаемые текущим пользователем
     user_teams = request.user.tracked_teams.prefetch_related('games').all()
 
-    # Все предстоящие и завершенные игры для отслеживаемых команд
+    # Предстоящие и завершенные игры для отслеживаемых команд
     upcoming_games = Game.objects.filter(
         team__in=user_teams,
         status=Game.GameStatus.UPCOMING
@@ -46,10 +46,10 @@ def schedule_index(request):
 
 @login_required
 def refresh_team(request, team_id):
-    """Обновление расписания конкретной команды"""
     team = get_object_or_404(TrackedTeam, id=team_id)
     try:
-        parse_and_update_team(team.url, user=request.user)
+        # Заменено parse_and_update_team на update_team_data_from_json
+        update_team_data_from_json(team.url, user=request.user)
         messages.success(request, f'Расписание команды "{team.name}" обновлено!')
     except Exception as e:
         messages.error(request, f'Не удалось обновить расписание: {e}')
@@ -58,7 +58,6 @@ def refresh_team(request, team_id):
 
 @login_required
 def remove_team_from_user(request, team_id):
-    """Удаление команды из списка отслеживаемых пользователем"""
     team = get_object_or_404(TrackedTeam, id=team_id)
     team.users.remove(request.user)
     messages.info(request, f'Команда "{team.name}" удалена из вашего списка.')
