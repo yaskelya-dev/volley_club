@@ -115,17 +115,15 @@ def attendance_matrix_view(request):
             'player_statuses': player_statuses
         })
 
-    # --- ФИЛЬТРАЦИЯ ДЛЯ ТЕКУЩЕГО ОТОБРАЖЕНИЯ (Прошлая, текущая и следующая недели) ---
+    # --- ФИЛЬТРАЦИЯ ДЛЯ ТЕКУЩЕГО ОТОБРАЖЕНИЯ (1 предыдущая и 2 следующие) ---
     today = timezone.now().date()
-    # Понедельник предыдущей недели (today.weekday() возвращает 0 для пн, 6 для вс)
-    start_date = today - timedelta(2)
-    # Воскресенье следующей недели
-    end_date = today + timedelta(4)
 
-    recent_matrix_rows = [
-        row for row in all_matrix_rows
-        if start_date <= row['training'].date <= end_date
-    ]
+    # Разделяем тренировки на прошедшие и предстоящие (включая сегодня)
+    past_rows = [row for row in all_matrix_rows if row['training'].date < today]
+    future_rows = [row for row in all_matrix_rows if row['training'].date >= today]
+
+    # Берем 1 последнюю прошедшую и 2 ближайшие будущие тренировки
+    recent_matrix_rows = past_rows[-1:] + future_rows[:2]
 
     # Причины пропусков для выбора в модальном окне
     reasons = AbsenceReason.objects.filter(
