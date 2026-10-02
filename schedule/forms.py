@@ -1,5 +1,6 @@
 from django import forms
 from urllib.parse import urlparse
+from .models import TrackedTeam
 
 
 class AddTrackedTeamForm(forms.Form):
@@ -21,3 +22,29 @@ class AddTrackedTeamForm(forms.Form):
                 "Укажите корректную ссылку на команду с сайта volleypgo.ru (например, https://volleypgo.ru/teams/petrgu-men/)")
 
         return url
+
+
+class GameFilterForm(forms.Form):
+    team = forms.ModelChoiceField(
+        queryset=TrackedTeam.objects.none(),
+        required=False,
+        label="Команда",
+        empty_label="Все отслеживаемые команды",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    date_from = forms.DateField(
+        required=False,
+        label="Дата с",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'lang': 'ru'})
+    )
+    date_to = forms.DateField(
+        required=False,
+        label="Дата по",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            # Ограничиваем список команд только теми, которые отслеживает текущий пользователь
+            self.fields['team'].queryset = user.tracked_teams.all()

@@ -1,8 +1,9 @@
+import re
+from datetime import datetime
 import requests
 from django.db import transaction
 from .models import TrackedTeam, Game
 
-# Замените на прямые ссылки на JSON-файлы с вашего сервера/сайта
 TEAMS_JSON_URL = 'https://volleypgo.ru/s-26-27/teams.json'
 SCHEDULE_JSON_URL = 'https://volleypgo.ru/s-26-27/schedule.json'
 
@@ -10,32 +11,64 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 }
 
+MONTHS_RU = {
+    'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4,
+    'мая': 5, 'июня': 6, 'июля': 7, 'августа': 8,
+    'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
+}
+
+
+def _parse_game_date(raw_date_str: str):
+    """Преобразует строку с датой в объект datetime.date."""
+    if not raw_date_str:
+        return None
+
+    raw_date_str = raw_date_str.strip()
+
+    # 1. Попытка распарсить формат YYYY-MM-DD
+    try:
+        return datetime.strptime(raw_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        pass
+
+    # 2. Попытка распарсить формат DD.MM.YYYY
+    try:
+        return datetime.strptime(raw_date_str, "%d.%m.%Y").date()
+    except ValueError:
+        pass
+
+    # 3. Попытка распарсить русский формат (например: "4 октября 2026 г.")
+    match = re.search(r'(\d{1,2})\s+([а-яА-Я]+)\s+(\d{4})', raw_date_str)
+    if match:
+        day, month_str, year = match.groups()
+        month_num = MONTHS_RU.get(month_str.lower())
+        if month_num:
+            try:
+                return datetime(int(year), month_num, int(day)).date()
+            except ValueError:
+                pass
+
+    return None
+
 
 def _fetch_json(url: str) -> dict:
-    """Вспомогательная функция для загрузки JSON по URL."""
     response = requests.get(url, headers=HEADERS, timeout=10)
     response.raise_for_status()
     return response.json()
 
 
 def _extract_team_info(input_str: str, teams_list: list) -> dict:
-    """
-    Ищет команду в списке по ID, названию или совпадению фрагмента URL.
-    """
     clean_input = input_str.strip().lower()
 
-    # 1. Точное совпадение по ID команды
     for team in teams_list:
         if team.get("id", "").lower() == clean_input:
             return team
 
-    # 2. Поиск ID внутри переданного URL (например: https://site.com/teams/mfcn)
     for team in teams_list:
         team_id = team.get("id", "").lower()
         if team_id and team_id in clean_input:
             return team
 
-    # 3. Совпадение по названию команды
     for team in teams_list:
         if team.get("name", "").lower() == clean_input:
             return team
@@ -47,20 +80,17 @@ def update_team_data_from_json(url_or_id: str, user=None) -> TrackedTeam:
     teams_data = _fetch_json(TEAMS_JSON_URL)
     schedule_data = _fetch_json(SCHEDULE_JSON_URL)
 
-    # Карта названий лиг: {"men-1": "1 мужская лига", ...}
     leagues_map = {
         league["id"]: league["name"]
         for league in teams_data.get("leagues", [])
     }
 
-    # Поиск команды в полученном JSON
     target_team = _extract_team_info(url_or_id, teams_data.get("teams", []))
     team_id_slug = target_team["id"]
     team_name = target_team["name"]
     league_name = leagues_map.get(target_team.get("leagueId"), "")
 
     with transaction.atomic():
-        # Создание или обновление отслеживаемой команды
         team_obj, _ = TrackedTeam.objects.get_or_create(
             url=url_or_id,
             defaults={
@@ -77,23 +107,21 @@ def update_team_data_from_json(url_or_id: str, user=None) -> TrackedTeam:
 
         team_obj.save()
 
-        # Полная актуализация списка игр
         team_obj.games.all().delete()
 
         games_to_create = []
         for g in schedule_data.get("games", []):
-            # Проверка участия команды в игре
             if g.get("team1Id") == team_id_slug or g.get("team2Id") == team_id_slug:
 
                 matchup_text = f"{g['team1']} — {g['team2']}"
-                date_str = f"{g.get('date', '')} {g.get('time', '')}".strip()
+                raw_date = g.get('date', '')
+                date_str = f"{raw_date} {g.get('time', '')}".strip()
+                parsed_date = _parse_game_date(raw_date)
 
-                # Счёт формируется при его наличии
                 score_str = ""
                 if g.get("score1") is not None and g.get("score2") is not None:
                     score_str = f"{g['score1']}:{g['score2']}"
 
-                # Маппинг статусов
                 raw_status = g.get("status", "")
                 if raw_status == "Завершён":
                     status = Game.GameStatus.COMPLETED
@@ -106,6 +134,7 @@ def update_team_data_from_json(url_or_id: str, user=None) -> TrackedTeam:
                         status=status,
                         matchup_text=matchup_text,
                         date_str=date_str,
+                        game_date=parsed_date,
                         score=score_str
                     )
                 )

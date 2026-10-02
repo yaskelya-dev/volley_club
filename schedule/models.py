@@ -33,6 +33,7 @@ class Game(models.Model):
 
     matchup_text = models.CharField("Матч / Вывеска", max_length=255)  # Например: "ПТЗ — ПетрГУ"
     date_str = models.CharField("Дата и время", max_length=100)  # Например: "4 октября 2026 г., 20:00"
+    game_date = models.DateField("Дата игры", null=True, blank=True)  # <--- Новое поле для фильтрации
     score = models.CharField("Счет", max_length=50, blank=True, null=True)  # Например: "3 : 1"
 
     class Meta:
