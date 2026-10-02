@@ -26,7 +26,7 @@ async def handle_start(message: types.Message):
 
     # Запрос к общей базе данных PostgreSQL
     try:
-        user = await CustomUser.objects.get(telegram_username__iexact=tg_username)
+        user = await CustomUser.objects.aget(telegram_username__iexact=tg_username)
 
         # Запоминаем telegram_id пользователя
         user.telegram_id = message.from_user.id
