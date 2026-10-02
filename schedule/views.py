@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+
+from users.decorators import login_required_message
 from .models import TrackedTeam, Game
 from .forms import AddTrackedTeamForm, GameFilterForm
 from .services import update_team_data_from_json
 
 
-@login_required
+@login_required_message(redirect_after_login='attendance:list')
 def schedule_index(request):
     form = AddTrackedTeamForm()
 
@@ -31,12 +33,13 @@ def schedule_index(request):
     upcoming_games = Game.objects.filter(
         team__in=user_teams,
         status=Game.GameStatus.UPCOMING
-    ).select_related('team')
+    ).select_related('team').order_by('game_date')
 
     completed_games = Game.objects.filter(
         team__in=user_teams,
         status=Game.GameStatus.COMPLETED
-    ).select_related('team')
+    ).select_related('team').order_by(
+        '-game_date')
 
     # 4. Применяем фильтры, если форма валидна
     if filter_form.is_valid():
