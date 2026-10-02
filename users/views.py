@@ -5,12 +5,13 @@ from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.conf import settings
 
+from .decorators import login_required_message
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, TelegramVerifyCodeForm, UserProfileForm
 from .models import TelegramVerificationCode
 from .services import send_telegram_verification_code  # Если вынесли в services.py
 
 
-@login_required
+@login_required_message()
 def profile_view(request):
     user = request.user
     old_tg_username = user.telegram_username
@@ -64,7 +65,7 @@ def profile_view(request):
     return render(request, 'users/profile.html', context)
 
 
-@login_required
+@login_required_message()
 def verify_telegram_view(request):
     # Если Telegram уже подтвержден или не указан никнейм
     if not request.user.telegram_username or request.user.is_telegram_verified:

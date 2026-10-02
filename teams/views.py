@@ -7,7 +7,7 @@ from .models import Team, TeamPlayer
 from .forms import TeamForm, TeamPlayerAddForm
 
 
-@login_required_message(redirect_after_login='teams:list')
+@login_required_message()
 def team_list_view(request):
     """Список всех команд пользователя + создание новой с редиректом на добавление игроков."""
     if request.method == 'POST':
@@ -30,7 +30,7 @@ def team_list_view(request):
     })
 
 
-@login_required
+@login_required_message()
 def team_detail_view(request, pk):
     """Страница редактирования названия команды и управления составом."""
     team = get_object_or_404(Team, pk=pk, owner=request.user)
@@ -56,7 +56,7 @@ def team_detail_view(request, pk):
     })
 
 
-@login_required
+@login_required_message()
 def add_player_view(request, pk):
     """Добавление игрока в состав команды."""
     team = get_object_or_404(Team, pk=pk, owner=request.user)
@@ -79,7 +79,7 @@ def add_player_view(request, pk):
     return redirect('teams:detail', pk=pk)
 
 
-@login_required
+@login_required_message()
 def remove_player_view(request, pk, player_pk):
     """Удаление игрока из состава команды."""
     team = get_object_or_404(Team, pk=pk, owner=request.user)
@@ -93,7 +93,7 @@ def remove_player_view(request, pk, player_pk):
     return redirect('teams:detail', pk=pk)
 
 
-@login_required
+@login_required_message()
 def team_delete_view(request, pk):
     """Удаление всей команды."""
     team = get_object_or_404(Team, pk=pk, owner=request.user)

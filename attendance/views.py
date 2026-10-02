@@ -10,7 +10,7 @@ from .forms import TrainingForm, AbsenceReasonForm
 from teams.models import Team
 
 
-@login_required_message(redirect_after_login='attendance:list')
+@login_required_message()
 def attendance_matrix_view(request):
     """Единый рабочий стол посещаемости с матричной таблицей."""
     user_teams = Team.objects.filter(owner=request.user).order_by('title')
@@ -132,7 +132,7 @@ def attendance_matrix_view(request):
     })
 
 
-@login_required
+@login_required_message()
 def training_delete_view(request, pk):
     """Удаление тренировки."""
     training = get_object_or_404(Training, pk=pk, created_by=request.user)
@@ -143,7 +143,7 @@ def training_delete_view(request, pk):
     return redirect(f"{reverse('attendance:list')}?team={team_id}")
 
 
-@login_required
+@login_required_message()
 def reason_edit_view(request, pk):
     """Редактирование пользовательской причины пропуска."""
     reason = get_object_or_404(AbsenceReason, pk=pk, created_by=request.user, is_default=False)
@@ -163,7 +163,7 @@ def reason_edit_view(request, pk):
     return redirect(redirect_url)
 
 
-@login_required
+@login_required_message()
 def reason_delete_view(request, pk):
     """Удаление пользовательской причины пропуска."""
     reason = get_object_or_404(AbsenceReason, pk=pk, created_by=request.user, is_default=False)

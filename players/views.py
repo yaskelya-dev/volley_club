@@ -7,7 +7,7 @@ from .models import Player
 from .forms import PlayerForm
 
 
-@login_required_message(redirect_after_login='players:list')
+@login_required_message()
 def player_list_view(request):
     if request.method == 'POST':
         form = PlayerForm(request.POST)
@@ -29,7 +29,7 @@ def player_list_view(request):
     })
 
 
-@login_required_message(redirect_after_login='players:list')
+@login_required_message()
 def player_detail_view(request, pk):
     player = get_object_or_404(Player, pk=pk, created_by=request.user)
 

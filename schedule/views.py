@@ -8,7 +8,7 @@ from .forms import AddTrackedTeamForm, GameFilterForm
 from .services import update_team_data_from_json
 
 
-@login_required_message(redirect_after_login='attendance:list')
+@login_required_message()
 def schedule_index(request):
     form = AddTrackedTeamForm()
 
@@ -69,7 +69,7 @@ def schedule_index(request):
     return render(request, 'schedule/index.html', context)
 
 
-@login_required
+@login_required_message()
 def refresh_team(request, team_id):
     team = get_object_or_404(TrackedTeam, id=team_id)
     try:
@@ -80,7 +80,7 @@ def refresh_team(request, team_id):
     return redirect('schedule:index')
 
 
-@login_required
+@login_required_message()
 def remove_team_from_user(request, team_id):
     team = get_object_or_404(TrackedTeam, id=team_id)
     team.users.remove(request.user)
