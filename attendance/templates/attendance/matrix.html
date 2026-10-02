@@ -4,42 +4,89 @@
 
 {% block extra_css %}
 <style>
-/* Фиксированная ширина таблицы для точного контроля столбцов */
+/* Гибкий макет: гигантского растягивания тренировок не будет */
 .table-matrix {
     table-layout: auto;
+    width: 100%;
 }
 
-/* Компактный столбец тренировки */
+/* Колонка №: зажимается под минимальный размер */
+.table-matrix th:first-child,
+.table-matrix td:first-child {
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+}
+
+/* Колонка Игрока: забирает всё свободное место на широком экране (имя видно полностью) */
+.table-matrix th:nth-child(2),
+.table-matrix td:nth-child(2) {
+    width: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Столбцы тренировок: оптимальная фиксированная ширина для десктопа */
 .table-matrix .training-col {
-    width: 85px;
-    min-width: 85px;
-    max-width: 85px;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
+    width: 80px;
+    min-width: 60px;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
 }
 
-/* Размер шрифта для даты и иконок */
+/* Бейджи и даты */
 .table-matrix .training-date {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.2;
+    white-space: nowrap;
 }
 
-/* Компактные бейджи посещаемости */
 .table-matrix .badge-status {
-    display: inline-block;
-    max-width: 100%;
+    display: block;
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 0.75rem;
-    padding: 0.25em 0.4em;
+    padding: 0.25em 0.2em;
 }
 
-/* Ультра-компактные кнопки в шапке */
 .table-matrix .btn-action {
     padding: 0px 3px !important;
-    font-size: 0.75rem;
-    line-height: 1.2;
+    font-size: 0.72rem;
+}
+
+/* Адаптив для мобильных устройств и узких экранов */
+@media (max-width: 768px) {
+    /* Ограничиваем имя на узком экране, чтобы уберечь таблицу от горизонтального скролла */
+    .table-matrix th:nth-child(2),
+    .table-matrix td:nth-child(2) {
+        max-width: 125px;
+    }
+
+    /* Ультра-компактные столбцы тренировок */
+    .table-matrix .training-col {
+        width: 56px;
+        min-width: 48px;
+        padding-left: 1px !important;
+        padding-right: 1px !important;
+    }
+
+    .table-matrix .training-date {
+        font-size: 0.68rem;
+    }
+
+    .table-matrix .badge-status {
+        font-size: 0.65rem;
+        padding: 0.2em 0.1em;
+    }
+
+    .table-matrix .btn-action {
+        padding: 0px 1px !important;
+        font-size: 0.65rem;
+    }
 }
 </style>
 {% endblock %}
@@ -117,56 +164,56 @@
                     </button>
                 </div>
             {% else %}
-<div class="table-responsive">
-    <table class="table table-bordered table-hover align-middle mb-0 text-center table-matrix">
-        <thead>
-            <tr>
-                <th scope="col" style="width: 35px;">№</th>
-                <th scope="col" class="text-start ps-3" style="width: 160px;">Игрок</th>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle mb-0 text-center table-matrix">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 35px;">№</th>
+                                <th scope="col" class="text-start ps-3" style="width: 160px;">Игрок</th>
 
-                <!-- Столбцы с тренировками за 3 недели -->
-                {% for row in recent_matrix_rows %}
-                    <th scope="col" class="training-header training-col px-1 py-1">
-                        <div class="btn-group btn-group-sm mb-1">
-                            <button type="button" class="btn btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#editTrainingModal{{ row.training.id }}" title="Редактировать">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteTrainingModal{{ row.training.id }}" title="Удалить">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                        <div class="fw-bold text-primary training-date">{{ row.training.date|date:"d.m.Y" }}</div>
-                    </th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for player in players %}
-                <tr>
-                    <td class="fw-bold text-muted">{{ forloop.counter }}</td>
-                    <td class="fw-semibold text-start text-nowrap ps-3">
-                        {{ player.name|truncatewords:1|slice:":-2:" }}
-                    </td>
-                    {% for row in recent_matrix_rows %}
-                        <td class="training-col px-1 py-1">
-                            {% for status in row.player_statuses %}
-                                {% if status.player_id == player.id %}
-                                    {% if status.is_present %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle badge-status">Был</span>
-                                    {% else %}
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle badge-status" title="{{ status.reason.title|default:'Отсутствовал' }}">
-                                            {{ status.reason.title|default:"Н/Я" }}
-                                        </span>
-                                    {% endif %}
-                                {% endif %}
+                                <!-- Столбцы с тренировками за 3 недели -->
+                                {% for row in recent_matrix_rows %}
+                                    <th scope="col" class="training-header training-col px-1 py-1">
+                                        <div class="btn-group btn-group-sm mb-1">
+                                            <button type="button" class="btn btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#editTrainingModal{{ row.training.id }}" title="Редактировать">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteTrainingModal{{ row.training.id }}" title="Удалить">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <div class="fw-bold text-primary training-date">{{ row.training.date|date:"d.m.Y" }}</div>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in players %}
+                                <tr>
+                                    <td class="fw-bold text-muted">{{ forloop.counter }}</td>
+                                    <td class="fw-semibold text-start text-nowrap ps-2 overflow-hidden text-truncate" title="{{ player.name }}">
+                                        {{ player.name }}
+                                    </td>
+                                    {% for row in recent_matrix_rows %}
+                                        <td class="training-col px-1 py-1">
+                                            {% for status in row.player_statuses %}
+                                                {% if status.player_id == player.id %}
+                                                    {% if status.is_present %}
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle badge-status">Был</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle badge-status" title="{{ status.reason.title|default:'Отсутствовал' }}">
+                                                            {{ status.reason.title|default:"Н/Я" }}
+                                                        </span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
                             {% endfor %}
-                        </td>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                        </tbody>
+                    </table>
+                </div>
             {% endif %}
         </div>
     </div>
@@ -444,6 +491,7 @@
 <!-- МОДАЛЬНЫЕ ОКНА ДЛЯ РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ПРИЧИН -->
 {% for reason in reasons %}
     {% if not reason.is_default and reason.created_by == request.user %}
+        <!-- Модальное окно редактирования причины -->
         <div class="modal fade text-start" id="editReasonModal{{ reason.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -456,8 +504,8 @@
                         </div>
                         <div class="modal-body">
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">Название причины</label>
-                                <input type="text" name="title" value="{{ reason.title }}" class="form-control" required maxlength="100">
+                                <label for="reason_title_{{ reason.id }}" class="form-label fw-semibold">Название причины</label>
+                                <input type="text" class="form-control" id="reason_title_{{ reason.id }}" name="title" value="{{ reason.title }}" required>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -469,6 +517,7 @@
             </div>
         </div>
 
+        <!-- Модальное окно удаления причины -->
         <div class="modal fade text-start" id="deleteReasonModal{{ reason.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -478,15 +527,11 @@
                     </div>
                     <div class="modal-body">
                         Удалить причину пропуска <strong>"{{ reason.title }}"</strong>?
-                        <p class="text-muted small mt-2 mb-0">
-                            У всех прошлых записей посещаемости с этой причиной отметка изменится на «Н/Я».
-                        </p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                         <form action="{% url 'attendance:reason_delete' reason.id %}?team={{ current_team.id }}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <input type="hidden" name="team_id" value="{{ current_team.id }}">
                             <button type="submit" class="btn btn-danger">Удалить</button>
                         </form>
                     </div>
@@ -495,24 +540,28 @@
         </div>
     {% endif %}
 {% endfor %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const switches = document.querySelectorAll('.matrix-attendance-switch');
-        switches.forEach(sw => {
-            sw.addEventListener('change', (e) => {
-                const targetId = e.target.getAttribute('data-target');
-                const selectEl = document.getElementById(targetId);
-                if (selectEl) {
-                    selectEl.disabled = e.target.checked;
-                    if (e.target.checked) {
-                        selectEl.value = "";
-                    }
+document.addEventListener('DOMContentLoaded', function () {
+    // Управление состоянием поля select (причина пропуска) при изменении тумблера "Был"
+    const switches = document.querySelectorAll('.matrix-attendance-switch');
+    switches.forEach(function (switchEl) {
+        switchEl.addEventListener('change', function () {
+            const targetId = this.getAttribute('data-target');
+            const reasonSelect = document.getElementById(targetId);
+            if (reasonSelect) {
+                if (this.checked) {
+                    reasonSelect.disabled = true;
+                    reasonSelect.value = '';
+                } else {
+                    reasonSelect.disabled = false;
                 }
-            });
+            }
         });
     });
+});
 </script>
 {% endblock %}
