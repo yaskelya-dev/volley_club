@@ -26,19 +26,5 @@ services:
       db:
         condition: service_healthy
 
-  bot:
-    build: .
-    command: python manage.py run_bot  # Или python bot.py
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-      web:
-        condition: service_started
-    restart: always
-
 volumes:
   postgres_data:
