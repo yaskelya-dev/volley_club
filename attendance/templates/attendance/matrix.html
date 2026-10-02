@@ -4,40 +4,42 @@
 
 {% block extra_css %}
 <style>
-/* Компактная таблица с горизонтальной прокруткой при большом числе тренировок */
+/* Фиксированная ширина таблицы для точного контроля столбцов */
 .table-matrix {
-    width: 100%;
+    table-layout: auto;
 }
 
-/* Компактные отступы и размер текста */
-.table-matrix th,
-.table-matrix td {
-    padding: 0.4rem 0.3rem !important;
-    font-size: 0.82rem;
-    vertical-align: middle;
-}
-
-/* Заголовки тренировок */
-.table-matrix th.training-header {
-    white-space: nowrap;
+/* Компактный столбец тренировки */
+.table-matrix .training-col {
+    width: 85px;
     min-width: 85px;
+    max-width: 85px;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
 }
 
-/* Компактные бейджи статуса */
-.table-matrix .badge {
-    font-size: 0.75rem;
-    padding: 0.2em 0.4em !important;
+/* Размер шрифта для даты и иконок */
+.table-matrix .training-date {
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+
+/* Компактные бейджи посещаемости */
+.table-matrix .badge-status {
     display: inline-block;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 0.75rem;
+    padding: 0.25em 0.4em;
 }
 
-@media (max-width: 1400px) {
-    .table-matrix .badge i {
-        display: none;
-    }
+/* Ультра-компактные кнопки в шапке */
+.table-matrix .btn-action {
+    padding: 0px 3px !important;
+    font-size: 0.75rem;
+    line-height: 1.2;
 }
 </style>
 {% endblock %}
@@ -115,56 +117,56 @@
                     </button>
                 </div>
             {% else %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle mb-0 text-center table-matrix">
-                        <thead>
-                            <tr>
-                                <th scope="col" style="width: 35px;">№</th>
-                                <th scope="col" class="text-start ps-3" style="min-width: 160px;">Игрок</th>
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle mb-0 text-center table-matrix">
+        <thead>
+            <tr>
+                <th scope="col" style="width: 35px;">№</th>
+                <th scope="col" class="text-start ps-3" style="width: 160px;">Игрок</th>
 
-                                <!-- Столбцы с тренировками за 3 недели -->
-                                {% for row in recent_matrix_rows %}
-                                    <th scope="col" class="training-header px-2">
-                                        <div class="btn-group btn-group-sm mt-1">
-                                            <button type="button" class="btn btn-sm btn-outline-primary px-1 py-0" data-bs-toggle="modal" data-bs-target="#editTrainingModal{{ row.training.id }}" title="Редактировать">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger px-1 py-0" data-bs-toggle="modal" data-bs-target="#deleteTrainingModal{{ row.training.id }}" title="Удалить">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                        <div class="fw-bold text-primary">{{ row.training.date|date:"d.m.Y" }}</div>
-                                    </th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for player in players %}
-                                <tr>
-                                    <td class="fw-bold text-muted">{{ forloop.counter }}</td>
-                                    <td class="fw-semibold text-start text-nowrap ps-3">
-                                        {{ player.name }}
-                                    </td>
-                                    {% for row in recent_matrix_rows %}
-                                        <td>
-                                            {% for status in row.player_statuses %}
-                                                {% if status.player_id == player.id %}
-                                                    {% if status.is_present %}
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Был</span>
-                                                    {% else %}
-                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" title="{{ status.reason.title|default:'Отсутствовал' }}">
-                                                            {{ status.reason.title|default:"Н/Я" }}
-                                                        </span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
+                <!-- Столбцы с тренировками за 3 недели -->
+                {% for row in recent_matrix_rows %}
+                    <th scope="col" class="training-header training-col px-1 py-1">
+                        <div class="btn-group btn-group-sm mb-1">
+                            <button type="button" class="btn btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#editTrainingModal{{ row.training.id }}" title="Редактировать">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteTrainingModal{{ row.training.id }}" title="Удалить">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <div class="fw-bold text-primary training-date">{{ row.training.date|date:"d.m.Y" }}</div>
+                    </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in players %}
+                <tr>
+                    <td class="fw-bold text-muted">{{ forloop.counter }}</td>
+                    <td class="fw-semibold text-start text-nowrap ps-3">
+                        {{ player.name|truncatewords:1|slice:":-2:" }}
+                    </td>
+                    {% for row in recent_matrix_rows %}
+                        <td class="training-col px-1 py-1">
+                            {% for status in row.player_statuses %}
+                                {% if status.player_id == player.id %}
+                                    {% if status.is_present %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle badge-status">Был</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle badge-status" title="{{ status.reason.title|default:'Отсутствовал' }}">
+                                            {{ status.reason.title|default:"Н/Я" }}
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
             {% endif %}
         </div>
     </div>
