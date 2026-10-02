@@ -118,9 +118,9 @@ def attendance_matrix_view(request):
     # --- ФИЛЬТРАЦИЯ ДЛЯ ТЕКУЩЕГО ОТОБРАЖЕНИЯ (Прошлая, текущая и следующая недели) ---
     today = timezone.now().date()
     # Понедельник предыдущей недели (today.weekday() возвращает 0 для пн, 6 для вс)
-    start_date = today - timedelta(days=today.weekday() + 7)
+    start_date = today - timedelta(2)
     # Воскресенье следующей недели
-    end_date = today + timedelta(days=(6 - today.weekday()) + 7)
+    end_date = today + timedelta(4)
 
     recent_matrix_rows = [
         row for row in all_matrix_rows
