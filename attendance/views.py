@@ -1,8 +1,10 @@
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 
 from users.decorators import login_required_message
 from .models import Training, AttendanceRecord, AbsenceReason
@@ -94,8 +96,8 @@ def attendance_matrix_view(request):
 
     attendance_map = {(r.training_id, r.player_id): r for r in records}
 
-    # Сборка строк таблицы-матрицы
-    matrix_rows = []
+    # Сборка строк таблицы-матрицы для ВСЕХ тренировок
+    all_matrix_rows = []
     for idx, training in enumerate(trainings, start=1):
         player_statuses = []
         for player in players:
@@ -107,11 +109,23 @@ def attendance_matrix_view(request):
                 'reason': rec.reason if rec else None
             })
 
-        matrix_rows.append({
+        all_matrix_rows.append({
             'number': idx,
             'training': training,
             'player_statuses': player_statuses
         })
+
+    # --- ФИЛЬТРАЦИЯ ДЛЯ ТЕКУЩЕГО ОТОБРАЖЕНИЯ (Прошлая, текущая и следующая недели) ---
+    today = timezone.now().date()
+    # Понедельник предыдущей недели (today.weekday() возвращает 0 для пн, 6 для вс)
+    start_date = today - timedelta(days=today.weekday() + 7)
+    # Воскресенье следующей недели
+    end_date = today + timedelta(days=(6 - today.weekday()) + 7)
+
+    recent_matrix_rows = [
+        row for row in all_matrix_rows
+        if start_date <= row['training'].date <= end_date
+    ]
 
     # Причины пропусков для выбора в модальном окне
     reasons = AbsenceReason.objects.filter(
@@ -125,7 +139,8 @@ def attendance_matrix_view(request):
         'teams': user_teams,
         'current_team': current_team,
         'players': players,
-        'matrix_rows': matrix_rows,
+        'recent_matrix_rows': recent_matrix_rows,  # За 3 недели (для таблицы)
+        'all_matrix_rows': all_matrix_rows,        # Все тренировки (для модального окна)
         'reasons': reasons,
         'training_form': training_form,
         'reason_form': reason_form,
