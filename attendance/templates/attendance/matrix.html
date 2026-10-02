@@ -49,7 +49,7 @@
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <h2 class="fw-bold m-0">
-        <i class="bi bi-table text-primary me-2"></i>Журнал посещаемости
+        <i class="bi bi-table text-primary me-2"></i>Посещаемость тренировок
     </h2>
     {% if teams %}
         <div class="d-flex gap-2">
@@ -57,7 +57,7 @@
                 <i class="bi bi-calendar-plus me-1"></i>Тренировка
             </button>
             <button type="button" class="btn btn-outline-secondary fw-semibold" data-bs-toggle="modal" data-bs-target="#manageReasonsModal">
-                <i class="bi bi-gear me-1"></i>Причины пропусков
+                <i class="bi bi-question-circle me-1"></i>Причины пропусков
             </button>
         </div>
     {% endif %}
@@ -79,7 +79,7 @@
             <li class="nav-item">
                 <a class="nav-link fs-6 fw-semibold {% if team.id == current_team.id %}active bg-white text-primary border-bottom-0{% else %}text-secondary{% endif %}"
                    href="?team={{ team.id }}">
-                    <i class="bi bi-shield-shaded me-1"></i>{{ team.title }}
+                    <i class="bi bi-people-fill me-1"></i>{{ team.title }}
                 </a>
             </li>
         {% endfor %}
