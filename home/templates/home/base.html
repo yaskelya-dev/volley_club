@@ -47,7 +47,7 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarContent">
-                    <!-- 4. Навигационные закладки -->
+                    <!-- Навигационные закладки -->
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'players:list' %}">Игроки</a>
@@ -61,9 +61,6 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'schedule:index' %}">Расписание</a>
                         </li>
-<!--                        <li class="nav-item">-->
-<!--                            <a class="nav-link" href="#">Новости</a>-->
-<!--                        </li>-->
                     </ul>
 
                     <!-- Правый блок: Переключатель темы и кнопка входа / меню пользователя -->
@@ -119,9 +116,47 @@
     </main>
 
     <!-- Подвал (Footer) -->
-    <footer class="footer mt-auto py-3 bg-body-tertiary border-top text-center text-muted">
+    <footer class="footer mt-auto py-4 bg-body-tertiary border-top">
         <div class="container">
-            <small>&copy; {% now "Y" %} volleykarelia. Все права защищены.</small>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-secondary small">
+
+                <!-- Копирайт сайта -->
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-dribbble text-primary"></i>
+                    <span>&copy; {% now "Y" %} <strong class="text-body">volleykarelia.ru</strong></span>
+                </div>
+
+                <!-- Блок разработчика -->
+                <div class="d-flex align-items-center flex-wrap justify-content-center gap-2">
+                    <span class="d-inline-flex align-items-center gap-1 text-body-secondary">
+                        <i class="bi bi-code-slash text-primary"></i>
+                        Разработка сайта:
+                    </span>
+                    <span class="fw-semibold text-body">Семён Яскеляйнен</span>
+
+                    <!-- Кнопки-ссылки -->
+                    <div class="d-inline-flex align-items-center gap-1 ms-md-1">
+                        <a href="https://yaskelyadev.ru/"
+                           target="_blank"
+                           rel="noopener"
+                           class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-pill d-inline-flex align-items-center gap-1"
+                           title="Сайт разработчика">
+                            <i class="bi bi-globe"></i>
+                            <span>yaskelyadev.ru</span>
+                        </a>
+
+                        <a href="https://t.me/yaskelya"
+                           target="_blank"
+                           rel="noopener"
+                           class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill d-inline-flex align-items-center gap-1"
+                           title="Написать в Telegram">
+                            <i class="bi bi-telegram"></i>
+                            <span>Telegram</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </footer>
 
