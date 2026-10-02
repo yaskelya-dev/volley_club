@@ -30,10 +30,11 @@ async def handle_start(message: types.Message):
 
         # Запоминаем telegram_id пользователя
         user.telegram_id = message.from_user.id
-        user.save()
+        await user.asave()  # <--- 1. Асинхронное сохранение
 
         # Ищем сгенерированный на сайте код
-        verification_entry = TelegramVerificationCode.objects.filter(user=user).first()
+        # <--- 2. Асинхронное получение первого элемента (afirst)
+        verification_entry = await TelegramVerificationCode.objects.filter(user=user).afirst()
 
         if verification_entry:
             await message.answer(
