@@ -14,6 +14,9 @@ LOGIN_URL = 'users:login'          # Куда отправлять незало�
 LOGIN_REDIRECT_URL = 'home:index' # Куда отправлять после успешного входа
 LOGOUT_REDIRECT_URL = 'home:index' # Куда отправлять после выхода
 
+TG_BOT_TOKEN = config.TG_BOT_TOKEN.get_secret_value()
+TG_BOT_USERNAME = 'volleykarelia_bot'
+
 INSTALLED_APPS = [
     'home',
     'users',

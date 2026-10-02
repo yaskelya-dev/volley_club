@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     DB_PASSWORD: SecretStr
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
+    TG_BOT_TOKEN: SecretStr
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

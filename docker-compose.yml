@@ -26,5 +26,21 @@ services:
     depends_on:
       - db
 
+  bot:
+    build: .
+    command: python manage.py run_bot  # Или python bot.py
+    volumes:
+      - .:/app
+    environment:
+      - DB_HOST=db
+      - DB_NAME=volleykarelia_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_password
+      - BOT_TOKEN=your_telegram_bot_token_here
+    depends_on:
+      - db
+      - web
+    restart: always
+
 volumes:
   postgres_data:
