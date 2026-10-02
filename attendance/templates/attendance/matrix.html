@@ -125,7 +125,6 @@
                                 <!-- Столбцы с тренировками за 3 недели -->
                                 {% for row in recent_matrix_rows %}
                                     <th scope="col" class="training-header px-2">
-                                        <div class="fw-bold text-primary">{{ row.training.date|date:"d.m.Y" }}</div>
                                         <div class="btn-group btn-group-sm mt-1">
                                             <button type="button" class="btn btn-sm btn-outline-primary px-1 py-0" data-bs-toggle="modal" data-bs-target="#editTrainingModal{{ row.training.id }}" title="Редактировать">
                                                 <i class="bi bi-pencil-square"></i>
@@ -134,6 +133,7 @@
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
+                                        <div class="fw-bold text-primary">{{ row.training.date|date:"d.m.Y" }}</div>
                                     </th>
                                 {% endfor %}
                             </tr>
