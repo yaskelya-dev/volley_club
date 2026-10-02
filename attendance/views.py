@@ -4,12 +4,13 @@ from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse
 
+from users.decorators import login_required_message
 from .models import Training, AttendanceRecord, AbsenceReason
 from .forms import TrainingForm, AbsenceReasonForm
 from teams.models import Team
 
 
-@login_required
+@login_required_message(redirect_after_login='attendance:list')
 def attendance_matrix_view(request):
     """Единый рабочий стол посещаемости с матричной таблицей."""
     user_teams = Team.objects.filter(owner=request.user).order_by('title')

@@ -1,6 +1,6 @@
 from pathlib import Path
 from .config import config
-
+from django.contrib.messages import constants as messages
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +17,14 @@ LOGOUT_REDIRECT_URL = 'home:index' # Куда отправлять после в
 TG_BOT_API_KEY = config.TG_BOT_API_KEY.get_secret_value()
 TG_BOT_API_URL = config.TG_BOT_API_URL
 TG_BOT_USERNAME = config.TG_BOT_USERNAME
+
+MESSAGE_TAGS = {
+    messages.DEBUG: 'secondary',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',  # Привязываем тег 'error' к классу Bootstrap 'danger'
+}
 
 INSTALLED_APPS = [
     'home',

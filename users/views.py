@@ -34,7 +34,7 @@ def profile_view(request):
                 api_success = send_telegram_verification_code(new_tg_username, tg_code_obj.code)
 
                 if api_success:
-                    messages.warning(
+                    messages.info(
                         request,
                         'Код подтверждения отправлен в Telegram бота. Введите его для завершения привязки.'
                     )

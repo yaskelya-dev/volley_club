@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+
+from users.decorators import login_required_message
 from .models import Team, TeamPlayer
 from .forms import TeamForm, TeamPlayerAddForm
 
 
-@login_required
+@login_required_message(redirect_after_login='teams:list')
 def team_list_view(request):
     """Список всех команд пользователя + создание новой с редиректом на добавление игроков."""
     if request.method == 'POST':
