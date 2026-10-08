@@ -24,7 +24,7 @@ RUN pip install \
 
 
 COPY alembic.ini ./
-COPY alembic ./alembic
+COPY alembic ./migrations
 COPY src ./src
 
 
