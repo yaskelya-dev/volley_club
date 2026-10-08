@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Команды — volleykarelia{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">КОМАНДЫ</div>
+        <h1>Команды</h1>
+        <p class="muted">Соберите составы из ваших игроков и переходите прямо к тренировкам.</p>
+    </div>
+    <div class="page-head__meta"><span class="badge">{{ teams|length }} команд</span></div>
+</div>
+
+<div class="content-grid content-grid--sidebar">
+    <section class="card card--sticky">
+        <div class="card__head">
+            <div>
+                <h2>Новая команда</h2>
+                <p class="muted">Название можно изменить позже.</p>
+            </div>
+        </div>
+
+        <form
+            class="form-stack"
+            data-api-form
+            data-endpoint="/api/v1/teams"
+            data-success="Команда создана"
+        >
+            <label class="field">
+                <span class="field__label">Название</span>
+                <input
+                    class="input"
+                    name="name"
+                    type="text"
+                    maxlength="150"
+                    required
+                    placeholder="ВК Карелия"
+                >
+            </label>
+
+            <button
+                class="button button--primary button--wide"
+                type="submit"
+            >
+                Создать команду
+            </button>
+        </form>
+
+        <div class="tip-box">
+            <strong>Подсказка</strong>
+            <span>Сначала создайте игроков, потом соберите составы.</span>
+        </div>
+    </section>
+
+    <section class="stack-vertical">
+        {% if teams %}
+            {% for team in teams %}
+            <article class="card team-card">
+                <div class="team-card__top">
+                    <div>
+                        <span class="eyebrow">КОМАНДА #{{ team.id }}</span>
+                        <h2>{{ team.name }}</h2>
+                    </div>
+
+                    <a
+                        class="button button--secondary button--small"
+                        href="/trainings?team_id={{ team.id }}"
+                    >
+                        Открыть тренировки
+                    </a>
+                </div>
+
+                <form
+                    class="inline-edit inline-edit--team"
+                    data-api-form
+                    data-endpoint="/api/v1/teams/{{ team.id }}"
+                    data-method="PUT"
+                    data-success="Команда обновлена"
+                >
+                    <input
+                        class="input input--compact"
+                        name="name"
+                        value="{{ team.name }}"
+                        required
+                    >
+                    <button
+                        class="button button--secondary button--small"
+                        type="submit"
+                    >
+                        Сохранить
+                    </button>
+                </form>
+
+                <div class="team-members">
+                    <div class="section-label">
+                        Состав
+                        <span>{{ team.players|length }}</span>
+                    </div>
+
+                    {% if team.players %}
+                    <div class="chip-list">
+                        {% for player in team.players %}
+                        <div class="person-chip">
+                            <span class="avatar avatar--tiny">
+                                {{ player.name[:1]|upper }}
+                            </span>
+                            <span>{{ player.name }}</span>
+                            <button
+                                type="button"
+                                class="chip-remove"
+                                data-remove-team="/api/v1/teams/{{ team.id }}/players/{{ player.id }}"
+                                aria-label="Убрать {{ player.name }}"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="muted">Состав пока пуст.</p>
+                    {% endif %}
+                </div>
+
+                <div class="team-card__bottom">
+                    <form
+                        class="member-add"
+                        data-endpoint="/api/v1/teams/{{ team.id }}/players"
+                        data-method="POST"
+                        data-team-form="true"
+                        data-team-id="{{ team.id }}"
+                        data-success="Игрок добавлен"
+                    >
+                        <select
+                            class="input"
+                            name="player_id"
+                            aria-label="Выберите игрока"
+                            {% if not players %}disabled{% endif %}
+                        >
+                            {% if players %}
+                                <option value="">Выберите игрока…</option>
+                                {% for player in players %}
+                                    <option value="{{ player.id }}">
+                                        {{ player.name }}
+                                    </option>
+                                {% endfor %}
+                            {% else %}
+                                <option>Сначала создайте игрока</option>
+                            {% endif %}
+                        </select>
+
+                        <button
+                            class="button button--primary button--small"
+                            type="submit"
+                            {% if not players %}disabled{% endif %}
+                        >
+                            Добавить в состав
+                        </button>
+                    </form>
+
+                    {# Важно: обычный POST не зависит от нестандартного method="delete" в HTML. #}
+                    <form
+                        action="/teams/{{ team.id }}/delete"
+                        method="post"
+                        onsubmit="return confirm('Удалить команду «{{ team.name }}» вместе с её тренировками?')"
+                    >
+                        <button
+                            class="button button--danger button--small"
+                            type="submit"
+                        >
+                            Удалить команду
+                        </button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+        <section class="card empty-state">
+            <span class="empty-state__icon">◈</span>
+            <h3>Команд ещё нет</h3>
+            <p>Создайте первую команду, чтобы начать вести тренировки.</p>
+        </section>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-team-form]').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const playerId = form.querySelector('[name="player_id"]').value;
+
+        if (!playerId) {
+            showToast('Выберите игрока', 'error');
+            return;
+        }
+
+        const teamId = form.dataset.teamId;
+        const endpoint = `/api/v1/teams/${teamId}/players/${playerId}`;
+
+        try {
+            await apiRequest(endpoint, { method: 'POST' });
+            showToast(form.dataset.success || 'Игрок добавлен');
+            window.setTimeout(() => window.location.reload(), 250);
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+});
+
+document.querySelectorAll('[data-remove-team]').forEach((button) => {
+    button.addEventListener('click', async () => {
+        if (!window.confirm('Убрать игрока из команды?')) return;
+
+        try {
+            await apiRequest(
+                button.dataset.removeTeam,
+                { method: 'DELETE' }
+            );
+
+            showToast('Игрок убран');
+            window.setTimeout(() => window.location.reload(), 250);
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+});
+</script>
+{% endblock %}

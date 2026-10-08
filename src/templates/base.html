@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0f172a">
+    <title>{% block title %}volleykarelia{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+    {% if current_user is defined and current_user %}
+    <header class="topbar">
+        <div class="container topbar__inner">
+            <a class="brand" href="/players" aria-label="volleykarelia">
+                <span class="brand__mark">V</span>
+                <span>volleykarelia</span>
+            </a>
+
+            <nav class="nav" aria-label="Основная навигация">
+                <a
+                    class="nav__link {% if request.url.path == '/players' %}is-active{% endif %}"
+                    href="/players"
+                >
+                    Игроки
+                </a>
+
+                <a
+                    class="nav__link {% if request.url.path == '/teams' %}is-active{% endif %}"
+                    href="/teams"
+                >
+                    Команды
+                </a>
+
+                <a
+                    class="nav__link {% if request.url.path.startswith('/trainings') %}is-active{% endif %}"
+                    href="/trainings"
+                >
+                    Тренировки
+                </a>
+
+                <a
+                    class="nav__link {% if request.url.path == '/absence-reasons' %}is-active{% endif %}"
+                    href="/absence-reasons"
+                >
+                    Причины
+                </a>
+            </nav>
+
+            <div class="user-menu">
+                <span class="user-menu__name">
+                    {{ current_user.name }}
+                </span>
+
+                <form action="/logout" method="post">
+                    <button
+                        class="button button--ghost button--small"
+                        type="submit"
+                    >
+                        Выйти
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+    {% endif %}
+
+    <main class="container main-content {% if not current_user is defined or not current_user %}main-content--auth{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<div
+    id="toast"
+    class="toast"
+    role="status"
+    aria-live="polite"
+></div>
+
+<script>
+(function () {
+    const toast = document.getElementById('toast');
+
+    window.showToast = function (message, type = 'success') {
+        toast.textContent = message;
+        toast.className = `toast toast--${type} toast--visible`;
+
+        window.clearTimeout(window.__toastTimer);
+
+        window.__toastTimer = window.setTimeout(() => {
+            toast.classList.remove('toast--visible');
+        }, 3200);
+    };
+
+    window.apiRequest = async function (url, options = {}) {
+        const response = await fetch(url, {
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            ...options
+        });
+
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return null;
+        }
+
+        if (!response.ok) {
+            let detail = `Ошибка ${response.status}`;
+
+            try {
+                const data = await response.json();
+                detail = typeof data.detail === 'string'
+                    ? data.detail
+                    : detail;
+            } catch (_) {}
+
+            throw new Error(detail);
+        }
+
+        if (response.status === 204) {
+            return null;
+        }
+
+        return response.json();
+    };
+
+    document.querySelectorAll('[data-api-form]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const button = form.querySelector(
+                'button[type="submit"]'
+            );
+
+            if (button) {
+                button.disabled = true;
+            }
+
+            const payload = Object.fromEntries(
+                new FormData(form).entries()
+            );
+
+            try {
+                await apiRequest(
+                    form.dataset.endpoint,
+                    {
+                        method: form.dataset.method || 'POST',
+                        body: JSON.stringify(payload)
+                    }
+                );
+
+                showToast(
+                    form.dataset.success || 'Сохранено'
+                );
+
+                const redirect = form.dataset.redirect;
+
+                if (redirect) {
+                    window.location.href = redirect;
+                } else {
+                    window.setTimeout(
+                        () => window.location.reload(),
+                        250
+                    );
+                }
+
+            } catch (error) {
+                showToast(
+                    error.message,
+                    'error'
+                );
+
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-confirm]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!window.confirm(form.dataset.confirm)) {
+                return;
+            }
+
+            try {
+                await apiRequest(
+                    form.action,
+                    {
+                        method: form.method || 'DELETE',
+                        body: undefined
+                    }
+                );
+
+                showToast('Удалено');
+
+                window.setTimeout(
+                    () => window.location.reload(),
+                    250
+                );
+
+            } catch (error) {
+                showToast(
+                    error.message,
+                    'error'
+                );
+            }
+        });
+    });
+})();
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

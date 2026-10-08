@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - volleykarelia{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-card">
+        <div class="eyebrow">VOLLEYKARELIA</div>
+
+        <h1>С возвращением</h1>
+
+        <p class="muted">
+            Войдите, чтобы открыть составы и расписание тренировок.
+        </p>
+
+        <form
+            class="form-stack"
+            data-api-form
+            data-endpoint="/api/v1/users/login"
+            data-success="Вы вошли в систему"
+            data-redirect="/players"
+        >
+            <label class="field">
+                <span class="field__label">
+                    Имя пользователя
+                </span>
+
+                <input
+                    class="input"
+                    name="name"
+                    type="text"
+                    minlength="2"
+                    maxlength="100"
+                    autocomplete="username"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span class="field__label">
+                    Пароль
+                </span>
+
+                <input
+                    class="input"
+                    name="password"
+                    type="password"
+                    minlength="6"
+                    maxlength="72"
+                    autocomplete="current-password"
+                    required
+                >
+            </label>
+
+            <button
+                class="button button--primary button--wide"
+                type="submit"
+            >
+                Войти
+            </button>
+        </form>
+
+        <p class="auth-footnote">
+            Нет аккаунта?
+            <a href="/register">
+                Зарегистрироваться
+            </a>
+        </p>
+    </div>
+
+    <div class="auth-visual">
+        <div class="hero-orb hero-orb--one"></div>
+        <div class="hero-orb hero-orb--two"></div>
+
+        <div class="auth-visual__copy">
+            <span class="badge badge--accent">
+                командный учёт
+            </span>
+
+            <h2>
+                Всё важное для волейбольной команды - в одном месте.
+            </h2>
+
+            <p>
+                Игроки, составы, даты тренировок, посещаемость.
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

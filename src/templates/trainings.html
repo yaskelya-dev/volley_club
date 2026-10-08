@@ -1,0 +1,858 @@
+{% extends "base.html" %}
+
+{% block title %}
+Тренировки — volleykarelia
+{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <div class="eyebrow">
+            ПОСЕЩАЕМОСТЬ
+        </div>
+
+        <h1>
+            Тренировки
+        </h1>
+
+        <p class="muted">
+            Выберите команду — таблица последних и ближайших тренировок появится сразу.
+        </p>
+    </div>
+</div>
+
+
+<section class="card training-page-card">
+    <div class="training-toolbar">
+
+        <label class="field training-selector">
+            <span class="field__label">
+                Команда
+            </span>
+
+            <select
+                class="input"
+                onchange="window.location.href='/trainings?team_id=' + this.value"
+                {% if not teams %}disabled{% endif %}
+            >
+                {% if teams %}
+
+                    {% for team in teams %}
+
+                    <option
+                        value="{{ team.id }}"
+                        {% if selected_team and selected_team.id == team.id %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ team.name }}
+                    </option>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <option value="">
+                        Нет команд
+                    </option>
+
+                {% endif %}
+            </select>
+        </label>
+
+
+        {% if selected_team %}
+
+        <div class="training-toolbar__actions">
+
+            <a
+                class="button button--secondary"
+                href="/trainings/{{ selected_team.id }}/all"
+            >
+                Все тренировки
+            </a>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+</section>
+
+
+{% if selected_team and attendance_view %}
+
+<section class="card attendance-view-card">
+
+    <div class="attendance-view__head">
+
+        <div>
+            <h2>
+                {{ selected_team.name }}
+            </h2>
+
+            <p class="muted">
+                Нажмите на отметку, чтобы изменить статус или причину прогула.
+            </p>
+        </div>
+
+        <span class="badge badge--accent">
+            {{ selected_team.players|length }}
+            игроков
+        </span>
+
+    </div>
+
+
+    {% if attendance_view.trainings %}
+
+    <div class="attendance-table-wrap">
+
+        <table class="attendance-table">
+
+            <colgroup>
+                <col class="attendance-col-number">
+                <col class="attendance-col-player">
+                <col class="attendance-col-training">
+                <col class="attendance-col-training">
+                <col class="attendance-col-training">
+            </colgroup>
+
+
+            <thead>
+                <tr>
+
+                    <th>
+                        №
+                    </th>
+
+                    <th>
+                        Игрок
+                    </th>
+
+
+                    {% for training in attendance_view.trainings %}
+
+                    <th>
+
+                        {% if loop.index == 1 %}
+                            <span>
+                                Пред.
+                            </span>
+
+                        {% elif loop.index == 2 %}
+                            <span>
+                                След. 1
+                            </span>
+
+                        {% else %}
+                            <span>
+                                След. 2
+                            </span>
+                        {% endif %}
+
+                        <small>
+                            {{ training.date.strftime('%d.%m') }}
+                        </small>
+
+                    </th>
+
+                    {% endfor %}
+
+
+                    {% for _ in range(
+                        3 - (attendance_view.trainings|length)
+                    ) %}
+
+                    <th>
+                        <span>—</span>
+                        <small>
+                            нет даты
+                        </small>
+                    </th>
+
+                    {% endfor %}
+
+                </tr>
+            </thead>
+
+
+            <tbody>
+
+            {% for row in attendance_view.rows %}
+
+            <tr>
+
+                <td class="attendance-number">
+                    {{ row.row_number }}
+                </td>
+
+
+                <td>
+
+                    <div
+                        class="attendance-player"
+                        title="{{ row.player.name }}"
+                    >
+
+                        <span class="avatar avatar--tiny">
+                            {{ row.player.name[:1]|upper }}
+                        </span>
+
+                        <span class="attendance-player__name">
+                            {{ row.player.name }}
+                        </span>
+
+                    </div>
+
+                </td>
+
+
+                {% for training in attendance_view.trainings %}
+
+                    {% set mark = row.marks[loop.index0] %}
+
+                    <td>
+
+                        <button
+                            type="button"
+
+                            class="
+                                attendance-status-button
+                                {% if mark and mark.status == 'present' %}
+                                    attendance-status-button--present
+                                {% elif mark and mark.status == 'absent' and mark.is_valid %}
+                                    attendance-status-button--valid-absence
+                                {% elif mark and mark.status == 'absent' %}
+                                    attendance-status-button--absent
+                                {% else %}
+                                    attendance-status-button--empty
+                                {% endif %}
+                            "
+
+                            data-attendance-cell
+                            data-training-id="{{ training.id }}"
+                            data-player-id="{{ row.player.id }}"
+
+                            data-status="
+                                {{ mark.status if mark else 'none' }}
+                            "
+
+                            data-reason-id="
+                                {{
+                                    mark.reason_id
+                                    if mark and mark.reason_id
+                                    else ''
+                                }}
+                            "
+
+                            data-reason-name="
+                                {{
+                                    mark.reason_name
+                                    if mark and mark.reason_name
+                                    else ''
+                                }}
+                            "
+
+                            data-is-valid="
+                                {{
+                                    'true'
+                                    if mark and mark.is_valid
+                                    else 'false'
+                                }}
+                            "
+
+                            title="
+                                {% if mark and mark.status == 'absent' and mark.reason_name %}
+                                    Прогул: {{ mark.reason_name }}
+                                {% elif mark and mark.status == 'absent' %}
+                                    Прогул без причины
+                                {% elif mark and mark.status == 'present' %}
+                                    Был
+                                {% else %}
+                                    Нет отметки
+                                {% endif %}
+                            "
+                        >
+
+                            <span class="attendance-status__icon">
+                                {% if mark and mark.status == 'present' %}
+                                    ✓
+                                {% elif mark and mark.status == 'absent' %}
+                                    ×
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+
+                            <span class="attendance-status__date">
+                                {{ training.date.strftime('%d.%m') }}
+                            </span>
+
+                            <span class="attendance-status__reason">
+                                {% if mark
+                                      and mark.status == 'absent'
+                                      and mark.reason_name %}
+                                    {{ mark.reason_name }}
+                                {% endif %}
+                            </span>
+
+                        </button>
+
+                    </td>
+
+                {% endfor %}
+
+
+                {% for _ in range(
+                    3 - (attendance_view.trainings|length)
+                ) %}
+
+                <td>
+
+                    <span
+                        class="
+                            attendance-status-button
+                            attendance-status-button--empty
+                            attendance-status-button--static
+                        "
+                    >
+
+                        <span class="attendance-status__icon">
+                            —
+                        </span>
+
+                        <span class="attendance-status__date">
+                            —
+                        </span>
+
+                        <span class="attendance-status__reason"></span>
+
+                    </span>
+
+                </td>
+
+                {% endfor %}
+
+            </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    {% else %}
+
+    <div class="empty-state empty-state--small">
+
+        <span class="empty-state__icon">
+            ◎
+        </span>
+
+        <h3>
+            Тренировок ещё нет
+        </h3>
+
+        <p>
+            Добавьте первую дату ниже.
+        </p>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="attendance-legend">
+
+        <span>
+            <i class="attendance-dot attendance-dot--present">
+                ✓
+            </i>
+            был
+        </span>
+
+        <span>
+            <i class="attendance-dot attendance-dot--valid-absence">
+                ×
+            </i>
+            уважительный прогул
+        </span>
+
+        <span>
+            <i class="attendance-dot attendance-dot--absent">
+                ×
+            </i>
+            прогул
+        </span>
+
+        <span>
+            <i class="attendance-dot attendance-dot--empty">
+                —
+            </i>
+            нет отметки
+        </span>
+
+    </div>
+
+</section>
+
+
+{% else %}
+
+<section class="card empty-state">
+
+    <span class="empty-state__icon">
+        ◈
+    </span>
+
+    <h3>
+        Сначала создайте команду
+    </h3>
+
+    <p>
+        После этого на странице появится таблица посещаемости.
+    </p>
+
+    <a
+        class="button button--primary"
+        href="/teams"
+    >
+        Перейти к командам
+    </a>
+
+</section>
+
+{% endif %}
+
+
+{% if selected_team %}
+
+<section class="card add-training-card">
+
+    <div class="card__head">
+
+        <div>
+
+            <h2>
+                Добавить тренировку
+            </h2>
+
+            <p class="muted">
+                Дата добавится в расписание выбранной команды.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <form
+        class="training-add-form"
+        data-api-form
+        data-endpoint="/api/v1/trainings"
+        data-success="Тренировка добавлена"
+    >
+
+        <input
+            type="hidden"
+            name="team_id"
+            value="{{ selected_team.id }}"
+        >
+
+
+        <label class="field">
+
+            <span class="field__label">
+                Дата
+            </span>
+
+            <input
+                class="input"
+                name="date"
+                type="date"
+                required
+            >
+
+        </label>
+
+
+        <button
+            class="button button--primary"
+            type="submit"
+        >
+            Добавить
+        </button>
+
+    </form>
+
+</section>
+
+{% endif %}
+
+
+{% include "_attendance_modal.html" %}
+
+{% endblock %}
+
+
+{% block scripts %}
+
+{% if selected_team and attendance_view %}
+
+<script>
+(function () {
+    const modal =
+        document.getElementById(
+            'attendance-modal'
+        );
+
+    const modalBackdrop =
+        document.getElementById(
+            'attendance-modal-backdrop'
+        );
+
+    const statusButtons =
+        document.querySelectorAll(
+            '[data-attendance-cell]'
+        );
+
+    const statusSelect =
+        document.getElementById(
+            'attendance-modal-status'
+        );
+
+    const reasonSelect =
+        document.getElementById(
+            'attendance-modal-reason'
+        );
+
+    const reasonField =
+        document.getElementById(
+            'attendance-modal-reason-field'
+        );
+
+    const error =
+        document.getElementById(
+            'attendance-modal-error'
+        );
+
+    const saveButton =
+        document.getElementById(
+            'attendance-modal-save'
+        );
+
+    const closeButtons =
+        modal.querySelectorAll(
+            '[data-attendance-modal-close]'
+        );
+
+
+    let activeCell = null;
+
+
+    function setModalStatus(status) {
+        statusSelect.value = status;
+
+        reasonField.hidden =
+            status !== 'absent';
+
+        error.hidden = true;
+
+        if (status === 'absent') {
+            reasonSelect.value =
+                activeCell?.dataset.reasonId || '';
+        }
+    }
+
+
+    function openModal(cell) {
+        activeCell = cell;
+
+        document.getElementById(
+            'attendance-modal-player'
+        ).textContent =
+            cell
+                .closest('tr')
+                .querySelector(
+                    '.attendance-player__name'
+                )
+                .textContent
+                .trim();
+
+        document.getElementById(
+            'attendance-modal-date'
+        ).textContent =
+            cell
+                .querySelector(
+                    '.attendance-status__date'
+                )
+                .textContent
+                .trim();
+
+
+        reasonSelect.value =
+            cell.dataset.reasonId || '';
+
+        setModalStatus(
+            cell.dataset.status || 'none'
+        );
+
+
+        modal.classList.add(
+            'attendance-modal--visible'
+        );
+
+        modalBackdrop.classList.add(
+            'attendance-modal-backdrop--visible'
+        );
+
+        document.body.classList.add(
+            'modal-open'
+        );
+
+        statusSelect.focus();
+    }
+
+
+    function closeModal() {
+        modal.classList.remove(
+            'attendance-modal--visible'
+        );
+
+        modalBackdrop.classList.remove(
+            'attendance-modal-backdrop--visible'
+        );
+
+        document.body.classList.remove(
+            'modal-open'
+        );
+
+        activeCell = null;
+        error.hidden = true;
+    }
+
+
+    function renderCell(cell, data) {
+        cell.dataset.status =
+            data.status;
+
+        cell.dataset.reasonId =
+            data.reason_id || '';
+
+        cell.dataset.reasonName =
+            data.reason_name || '';
+
+        cell.dataset.isValid =
+            String(data.is_valid);
+
+
+        cell.classList.remove(
+            'attendance-status-button--present',
+            'attendance-status-button--valid-absence',
+            'attendance-status-button--absent',
+            'attendance-status-button--empty'
+        );
+
+
+        if (data.status === 'present') {
+            cell.classList.add(
+                'attendance-status-button--present'
+            );
+
+        } else if (
+            data.status === 'absent'
+            && data.is_valid
+        ) {
+            cell.classList.add(
+                'attendance-status-button--valid-absence'
+            );
+
+        } else if (
+            data.status === 'absent'
+        ) {
+            cell.classList.add(
+                'attendance-status-button--absent'
+            );
+
+        } else {
+            cell.classList.add(
+                'attendance-status-button--empty'
+            );
+        }
+
+
+        cell.querySelector(
+            '.attendance-status__icon'
+        ).textContent =
+            data.status === 'present'
+                ? '✓'
+                : data.status === 'absent'
+                    ? '×'
+                    : '—';
+
+
+        cell.querySelector(
+            '.attendance-status__reason'
+        ).textContent =
+            data.status === 'absent'
+                ? (
+                    data.reason_name || ''
+                )
+                : '';
+
+
+        cell.title =
+            data.status === 'present'
+                ? 'Был'
+                : data.status === 'absent'
+                    ? (
+                        data.reason_name
+                            ? `Прогул: ${data.reason_name}`
+                            : 'Прогул без причины'
+                    )
+                    : 'Нет отметки';
+    }
+
+
+    async function saveAttendance() {
+        if (!activeCell) {
+            return;
+        }
+
+
+        const selectedStatus =
+            statusSelect.value;
+
+        const reasonId =
+            reasonSelect.value;
+
+
+        if (
+            selectedStatus === 'absent'
+            && !reasonId
+        ) {
+            error.hidden = false;
+            return;
+        }
+
+
+        saveButton.disabled = true;
+
+
+        try {
+            const data =
+                await apiRequest(
+                    '/trainings/attendance',
+                    {
+                        method: 'POST',
+
+                        body: JSON.stringify({
+                            player_id: Number(
+                                activeCell.dataset.playerId
+                            ),
+
+                            training_id: Number(
+                                activeCell.dataset.trainingId
+                            ),
+
+                            status:
+                                selectedStatus,
+
+                            reason_id:
+                                selectedStatus === 'absent'
+                                    ? Number(reasonId)
+                                    : null
+                        })
+                    }
+                );
+
+
+            renderCell(
+                activeCell,
+                data
+            );
+
+            closeModal();
+
+            showToast(
+                'Отметка сохранена'
+            );
+
+        } catch (requestError) {
+            error.textContent =
+                requestError.message;
+
+            error.hidden = false;
+
+        } finally {
+            saveButton.disabled = false;
+        }
+    }
+
+
+    statusButtons.forEach(
+        (cell) => {
+            cell.addEventListener(
+                'click',
+                () => openModal(cell)
+            );
+        }
+    );
+
+
+    statusSelect.addEventListener(
+        'change',
+        () => {
+            setModalStatus(
+                statusSelect.value
+            );
+        }
+    );
+
+
+    saveButton.addEventListener(
+        'click',
+        saveAttendance
+    );
+
+
+    modalBackdrop.addEventListener(
+        'click',
+        closeModal
+    );
+
+
+    closeButtons.forEach(
+        (button) => {
+            button.addEventListener(
+                'click',
+                closeModal
+            );
+        }
+    );
+
+
+    document.addEventListener(
+        'keydown',
+        (event) => {
+            if (
+                event.key === 'Escape'
+                && modal.classList.contains(
+                    'attendance-modal--visible'
+                )
+            ) {
+                closeModal();
+            }
+        }
+    );
+})();
+</script>
+
+{% endif %}
+
+{% endblock %}

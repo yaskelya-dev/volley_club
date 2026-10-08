@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Игроки — volleykarelia{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <div class="eyebrow">СОСТАВ</div>
+        <h1>Игроки</h1>
+        <p class="muted">Ваш список игроков. Эти записи можно добавлять в несколько ваших команд.</p>
+    </div>
+    <div class="page-head__meta"><span class="badge">{{ players|length }} игроков</span></div>
+</div>
+
+<div class="content-grid content-grid--sidebar">
+    <section class="card card--sticky">
+        <div class="card__head">
+            <div>
+                <h2>Новый игрок</h2>
+                <p class="muted">Добавьте ФИО или привычное имя.</p>
+            </div>
+        </div>
+
+        <form
+            class="form-stack"
+            data-api-form
+            data-endpoint="/api/v1/players"
+            data-success="Игрок добавлен"
+        >
+            <label class="field">
+                <span class="field__label">ФИО игрока</span>
+                <input
+                    class="input"
+                    name="name"
+                    type="text"
+                    maxlength="150"
+                    required
+                    placeholder="Например, Крылов Виталий"
+                >
+            </label>
+
+            <button
+                class="button button--primary button--wide"
+                type="submit"
+            >
+                Добавить игрока
+            </button>
+        </form>
+    </section>
+
+    <section class="card">
+        <div class="card__head">
+            <div>
+                <h2>Список</h2>
+                <p class="muted">Редактирование и удаление доступны сразу.</p>
+            </div>
+        </div>
+
+        {% if players %}
+        <div class="list-stack">
+            {% for player in players %}
+            <div class="list-row">
+                <div class="list-row__main">
+                    <div class="avatar">{{ player.name[:1]|upper }}</div>
+                    <div>
+                        <strong>{{ player.name }}</strong>
+                        <span class="subtle">ID {{ player.id }}</span>
+                    </div>
+                </div>
+
+                <form
+                    class="inline-edit"
+                    data-api-form
+                    data-endpoint="/api/v1/players/{{ player.id }}"
+                    data-method="PUT"
+                    data-success="Игрок обновлён"
+                >
+                    <input
+                        class="input input--compact"
+                        name="name"
+                        value="{{ player.name }}"
+                        required
+                    >
+                    <button
+                        class="button button--secondary button--small"
+                        type="submit"
+                    >
+                        Сохранить
+                    </button>
+                </form>
+
+                {# Изменение: удаление теперь обычный POST на веб-роут, не API DELETE из HTML. #}
+                <form
+                    action="/players/{{ player.id }}/delete"
+                    method="post"
+                    onsubmit="return confirm('Удалить игрока «{{ player.name }}»?')"
+                >
+                    <button
+                        class="button button--danger button--small"
+                        type="submit"
+                    >
+                        Удалить
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-state__icon">✦</span>
+            <h3>Пока нет игроков</h3>
+            <p>Добавьте первого игрока через форму слева.</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

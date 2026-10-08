@@ -1,0 +1,128 @@
+<div
+    id="attendance-modal-backdrop"
+    class="attendance-modal-backdrop"
+    aria-hidden="true"
+></div>
+
+<section
+    id="attendance-modal"
+    class="attendance-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="attendance-modal-title"
+>
+    <div class="attendance-modal__head">
+        <div>
+            <div class="eyebrow">ОТМЕТКА</div>
+
+            <h2 id="attendance-modal-title">
+                Посещаемость
+            </h2>
+
+            <p class="muted">
+                <span id="attendance-modal-player"></span>
+                ·
+                <span id="attendance-modal-date"></span>
+            </p>
+        </div>
+
+        <button
+            type="button"
+            class="modal-close"
+            data-attendance-modal-close
+            aria-label="Закрыть"
+        >
+            ×
+        </button>
+    </div>
+
+    <div class="attendance-modal__body">
+        <label class="field">
+            <span class="field__label">
+                Статус
+            </span>
+
+            <select
+                class="input"
+                id="attendance-modal-status"
+            >
+                <option value="present">
+                    Был
+                </option>
+
+                <option value="absent">
+                    Прогул
+                </option>
+
+                <option value="none">
+                    Снять отметку
+                </option>
+            </select>
+        </label>
+
+        <label
+            class="field"
+            id="attendance-modal-reason-field"
+            hidden
+        >
+            <span class="field__label">
+                Причина прогула
+            </span>
+
+            <select
+                class="input"
+                id="attendance-modal-reason"
+            >
+                <option value="">
+                    Выберите причину…
+                </option>
+
+                {% for reason in attendance_view.reasons %}
+                <option value="{{ reason.id }}">
+                    {{ reason.name }}
+                    {% if reason.is_valid %}
+                        — уважительная
+                    {% else %}
+                        — неуважительная
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <p
+            id="attendance-modal-error"
+            class="form-error"
+            hidden
+        >
+            Выберите причину прогула.
+        </p>
+
+        {% if not attendance_view.reasons %}
+        <div class="modal-tip">
+            Причин пока нет.
+            <a href="/absence-reasons">
+                Создать причину
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="attendance-modal__actions">
+        <button
+            type="button"
+            class="button button--secondary"
+            data-attendance-modal-close
+        >
+            Отмена
+        </button>
+
+        <button
+            type="button"
+            class="button button--primary"
+            id="attendance-modal-save"
+        >
+            Сохранить
+        </button>
+    </div>
+</section>

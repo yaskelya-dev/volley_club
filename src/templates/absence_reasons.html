@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}
+Причины прогулов — volleykarelia
+{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+
+    <div>
+
+        <div class="eyebrow">
+            СПРАВОЧНИК
+        </div>
+
+        <h1>
+            Причины прогулов
+        </h1>
+
+        <p class="muted">
+            Личные записи: видеть, менять и удалять их можете только вы.
+        </p>
+
+    </div>
+
+
+    <div class="page-head__meta">
+
+        <span class="badge">
+            {{ reasons|length }}
+            причин
+        </span>
+
+    </div>
+
+</div>
+
+
+<div class="content-grid content-grid--sidebar">
+
+
+    <section class="card card--sticky">
+
+        <div class="card__head">
+
+            <div>
+
+                <h2>
+                    Новая причина
+                </h2>
+
+                <p class="muted">
+                    Например: болезнь, учёба, отпуск.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form
+            class="form-stack"
+            data-reason-form
+            data-endpoint="/api/v1/absence-reasons"
+            data-method="POST"
+            data-success="Причина добавлена"
+        >
+
+            <label class="field">
+
+                <span class="field__label">
+                    Название
+                </span>
+
+                <input
+                    class="input"
+                    name="name"
+                    type="text"
+                    maxlength="200"
+                    required
+                    placeholder="Болезнь"
+                >
+
+            </label>
+
+
+            <label class="check-row">
+
+                <input
+                    type="checkbox"
+                    name="is_valid"
+                >
+
+                <span>
+
+                    <strong>
+                        Уважительная
+                    </strong>
+
+                    <small>
+                        Жёлтый цвет вместо красного в посещаемости.
+                    </small>
+
+                </span>
+
+            </label>
+
+
+            <button
+                class="button button--primary button--wide"
+                type="submit"
+            >
+                Добавить причину
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <section class="card">
+
+        <div class="card__head">
+
+            <div>
+
+                <h2>
+                    Ваши причины
+                </h2>
+
+                <p class="muted">
+                    Записи изолированы по текущему пользователю.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if reasons %}
+
+        <div class="list-stack">
+
+            {% for reason in reasons %}
+
+            <div class="reason-row">
+
+
+                <div class="reason-row__main">
+
+                    <div class="icon-box">
+                        ⌁
+                    </div>
+
+
+                    <div class="reason-row__title">
+
+                        <strong>
+                            {{ reason.name }}
+                        </strong>
+
+
+                        {% if reason.is_valid %}
+
+                            <span
+                                class="reason-badge reason-badge--valid"
+                            >
+                                Уважительная
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="reason-badge reason-badge--invalid"
+                            >
+                                Неуважительная
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                <form
+                    class="reason-edit-form"
+                    data-reason-form
+                    data-endpoint="/api/v1/absence-reasons/{{ reason.id }}"
+                    data-method="PUT"
+                    data-success="Причина обновлена"
+                >
+
+                    <input
+                        class="input input--compact"
+                        name="name"
+                        value="{{ reason.name }}"
+                        required
+                    >
+
+
+                    <label class="check-inline">
+
+                        <input
+                            type="checkbox"
+                            name="is_valid"
+                            {% if reason.is_valid %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <span>
+                            Уважительная
+                        </span>
+
+                    </label>
+
+
+                    <button
+                        class="button button--secondary button--small"
+                        type="submit"
+                    >
+                        Сохранить
+                    </button>
+
+                </form>
+
+
+                <form
+                    action="/absence-reasons/{{ reason.id }}/delete"
+                    method="post"
+                    onsubmit="return confirm('Удалить причину «{{ reason.name }}»?')"
+                >
+
+                    <button
+                        class="button button--danger button--small"
+                        type="submit"
+                    >
+                        Удалить
+                    </button>
+
+                </form>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        {% else %}
+
+        <div class="empty-state">
+
+            <span class="empty-state__icon">
+                ⌁
+            </span>
+
+            <h3>
+                Справочник пуст
+            </h3>
+
+            <p>
+                Добавьте первую причину, чтобы отмечать типичные случаи.
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+document
+    .querySelectorAll('[data-reason-form]')
+    .forEach((form) => {
+
+        form.addEventListener(
+            'submit',
+            async (event) => {
+
+                event.preventDefault();
+
+
+                const button =
+                    form.querySelector(
+                        'button[type="submit"]'
+                    );
+
+
+                if (button) {
+                    button.disabled = true;
+                }
+
+
+                const name =
+                    form
+                        .querySelector(
+                            '[name="name"]'
+                        )
+                        .value
+                        .trim();
+
+
+                const valid =
+                    form
+                        .querySelector(
+                            '[name="is_valid"]'
+                        )
+                        .checked;
+
+
+                try {
+
+                    await apiRequest(
+                        form.dataset.endpoint,
+                        {
+                            method:
+                                form.dataset.method
+                                || 'POST',
+
+                            body:
+                                JSON.stringify({
+                                    name,
+                                    is_valid: valid
+                                })
+                        }
+                    );
+
+
+                    showToast(
+                        form.dataset.success
+                        || 'Сохранено'
+                    );
+
+
+                    window.setTimeout(
+                        () =>
+                            window.location.reload(),
+                        250
+                    );
+
+                } catch (error) {
+
+                    showToast(
+                        error.message,
+                        'error'
+                    );
+
+                } finally {
+
+                    if (button) {
+                        button.disabled = false;
+                    }
+
+                }
+
+            }
+        );
+
+    });
+</script>
+
+{% endblock %}

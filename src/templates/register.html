@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация — volleykarelia{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-card">
+        <div class="eyebrow">VOLLEYKARELIA</div>
+
+        <h1>Создать аккаунт</h1>
+
+        <p class="muted">
+            После регистрации вы сразу попадёте в рабочее пространство.
+        </p>
+
+        <form
+            class="form-stack"
+            data-api-form
+            data-endpoint="/api/v1/users/register"
+            data-success="Аккаунт создан"
+            data-redirect="/players"
+        >
+            <label class="field">
+                <span class="field__label">
+                    Имя пользователя
+                </span>
+
+                <input
+                    class="input"
+                    name="name"
+                    type="text"
+                    minlength="2"
+                    maxlength="100"
+                    autocomplete="username"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span class="field__label">
+                    Пароль
+                </span>
+
+                <input
+                    class="input"
+                    name="password"
+                    type="password"
+                    minlength="6"
+                    maxlength="72"
+                    autocomplete="new-password"
+                    required
+                >
+            </label>
+
+            <button
+                class="button button--primary button--wide"
+                type="submit"
+            >
+                Создать аккаунт
+            </button>
+        </form>
+
+        <p class="auth-footnote">
+            Уже зарегистрированы?
+            <a href="/login">
+                Войти
+            </a>
+        </p>
+    </div>
+
+    <div class="auth-visual auth-visual--register">
+        <div class="metric-grid">
+            <div class="metric-card">
+                <strong>01</strong>
+                <span>Игроки</span>
+            </div>
+
+            <div class="metric-card">
+                <strong>02</strong>
+                <span>Команды</span>
+            </div>
+
+            <div class="metric-card">
+                <strong>03</strong>
+                <span>Тренировки</span>
+            </div>
+
+            <div class="metric-card">
+                <strong>04</strong>
+                <span>Причины</span>
+            </div>
+        </div>
+
+        <div class="auth-visual__copy">
+            <span class="badge badge--accent">
+                локальный интерфейс
+            </span>
+
+            <h2>
+                Регистрация на VolleyKarelia
+            </h2>
+
+            <p>
+                После регистрации вы получите доступ ко всему функционалу сайта
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}
