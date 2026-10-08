@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import hashlib
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -17,7 +18,9 @@ from src.api.v1 import (
     trainings_router,
     users_router,
 )
+
 from src.core.config import settings
+
 from src.core.dependencies import (
     get_absence_reason_service,
     get_current_user,
@@ -25,79 +28,186 @@ from src.core.dependencies import (
     get_team_service,
     get_training_service,
 )
+
 from src.database.database import async_engine
-from src.schemas.training import AttendanceItemRead, AttendanceUpsert
+
+from src.schemas.training import (
+    AttendanceItemRead,
+    AttendanceUpsert,
+)
+
 from src.schemas.user import UserRead
-from src.services import NotFoundError, ValidationServiceError
-from src.services.absence_reason_service import AbsenceReasonService
-from src.services.player_service import PlayerService
-from src.services.team_service import TeamService
-from src.services.training_service import TrainingService
+
+from src.services import (
+    NotFoundError,
+    ValidationServiceError,
+)
+
+from src.services.absence_reason_service import (
+    AbsenceReasonService,
+)
+
+from src.services.player_service import (
+    PlayerService,
+)
+
+from src.services.team_service import (
+    TeamService,
+)
+
+from src.services.training_service import (
+    TrainingService,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
 
+STATIC_DIR = BASE_DIR / "static"
+
+STATIC_CSS = (
+    STATIC_DIR
+    / "css"
+    / "style.css"
+)
+
+
+if not STATIC_CSS.is_file():
+    raise RuntimeError(
+        f"Static CSS is missing: {STATIC_CSS}"
+    )
+
+
+# Версия CSS меняется автоматически при изменении файла.
+ASSET_VERSION = (
+    hashlib
+    .sha256(
+        STATIC_CSS.read_bytes()
+    )
+    .hexdigest()[:12]
+)
+
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Жизненный цикл приложения без устаревшего @app.on_event."""
+async def lifespan(
+    _: FastAPI,
+) -> AsyncIterator[None]:
+
     yield
+
     await async_engine.dispose()
 
 
 app = FastAPI(
     title="volleykarelia",
-    description="Учёт игроков, команд, тренировок и посещаемости",
+
+    description=(
+        "Учёт игроков, команд, "
+        "тренировок и посещаемости"
+    ),
+
     debug=settings.DEBUG,
+
     lifespan=lifespan,
 )
 
 
 app.add_middleware(
     SessionMiddleware,
+
     secret_key=settings.SECRET_KEY,
-    session_cookie=settings.SESSION_COOKIE_NAME,
+
+    session_cookie=(
+        settings.SESSION_COOKIE_NAME
+    ),
+
     max_age=60 * 60 * 24 * 14,
+
     same_site="lax",
+
     https_only=False,
 )
 
 
+# Статика монтируется абсолютным путём.
+# Важно: до подключения остальных маршрутов.
 app.mount(
     "/static",
-    StaticFiles(directory=BASE_DIR / "static"),
+
+    StaticFiles(
+        directory=STATIC_DIR
+    ),
+
     name="static",
 )
 
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+templates = Jinja2Templates(
+    directory=BASE_DIR / "templates"
+)
 
 
-# Существующие API-роуты сохраняются.
-# attendance_router только расширяет API новым POST /api/v1/attendance.
-app.include_router(users_router, prefix="/api/v1")
-app.include_router(players_router, prefix="/api/v1")
-app.include_router(teams_router, prefix="/api/v1")
-app.include_router(trainings_router, prefix="/api/v1")
-app.include_router(attendance_router, prefix="/api/v1")
-app.include_router(absence_reasons_router, prefix="/api/v1")
+app.include_router(
+    users_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    players_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    teams_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    trainings_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    attendance_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    absence_reasons_router,
+    prefix="/api/v1",
+)
 
 
-@app.get("/health", tags=["system"])
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get(
+    "/health",
+    tags=["system"],
+)
+async def health():
+    return {
+        "status": "ok"
+    }
 
 
-@app.get("/", include_in_schema=False)
-async def root(request: Request):
-    if request.session.get("user_id"):
+@app.get(
+    "/",
+    include_in_schema=False,
+)
+async def root(
+    request: Request,
+):
+
+    if request.session.get(
+        "user_id"
+    ):
+
         return RedirectResponse(
             url="/players",
-            status_code=status.HTTP_303_SEE_OTHER,
+            status_code=303,
         )
+
 
     return RedirectResponse(
         url="/login",
-        status_code=status.HTTP_303_SEE_OTHER,
+        status_code=303,
     )
 
 
@@ -106,17 +216,29 @@ async def root(request: Request):
     response_class=HTMLResponse,
     include_in_schema=False,
 )
-async def login_page(request: Request):
-    if request.session.get("user_id"):
+async def login_page(
+    request: Request,
+):
+
+    if request.session.get(
+        "user_id"
+    ):
+
         return RedirectResponse(
             url="/players",
-            status_code=status.HTTP_303_SEE_OTHER,
+            status_code=303,
         )
+
 
     return templates.TemplateResponse(
         request=request,
+
         name="login.html",
-        context={},
+
+        context={
+            "asset_version":
+                ASSET_VERSION,
+        },
     )
 
 
@@ -125,27 +247,46 @@ async def login_page(request: Request):
     response_class=HTMLResponse,
     include_in_schema=False,
 )
-async def register_page(request: Request):
-    if request.session.get("user_id"):
+async def register_page(
+    request: Request,
+):
+
+    if request.session.get(
+        "user_id"
+    ):
+
         return RedirectResponse(
             url="/players",
-            status_code=status.HTTP_303_SEE_OTHER,
+            status_code=303,
         )
+
 
     return templates.TemplateResponse(
         request=request,
+
         name="register.html",
-        context={},
+
+        context={
+            "asset_version":
+                ASSET_VERSION,
+        },
     )
 
 
-@app.post("/logout", include_in_schema=False)
-async def logout(request: Request):
+@app.post(
+    "/logout",
+    include_in_schema=False,
+)
+async def logout(
+    request: Request,
+):
+
     request.session.clear()
+
 
     return RedirectResponse(
         url="/login",
-        status_code=status.HTTP_303_SEE_OTHER,
+        status_code=303,
     )
 
 
@@ -156,44 +297,36 @@ async def logout(request: Request):
 )
 async def players_page(
     request: Request,
-    current_user: UserRead = Depends(get_current_user),
-    service: PlayerService = Depends(get_player_service),
-):
-    players = await service.list(current_user.id)
 
-    return templates.TemplateResponse(
-        request=request,
-        name="players.html",
-        context={
-            "current_user": current_user,
-            "players": players,
-        },
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
+    service: PlayerService = Depends(
+        get_player_service
+    ),
+):
+
+    players = await service.list(
+        current_user.id
     )
 
 
-@app.post(
-    "/players/{player_id}/delete",
-    include_in_schema=False,
-)
-async def delete_player_page(
-    player_id: int,
-    current_user: UserRead = Depends(get_current_user),
-    service: PlayerService = Depends(get_player_service),
-):
-    try:
-        await service.delete(
-            current_user.id,
-            player_id,
-        )
-    except NotFoundError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
+    return templates.TemplateResponse(
+        request=request,
 
-    return RedirectResponse(
-        url="/players",
-        status_code=status.HTTP_303_SEE_OTHER,
+        name="players.html",
+
+        context={
+            "current_user":
+                current_user,
+
+            "players":
+                players,
+
+            "asset_version":
+                ASSET_VERSION,
+        },
     )
 
 
@@ -204,48 +337,47 @@ async def delete_player_page(
 )
 async def teams_page(
     request: Request,
-    current_user: UserRead = Depends(get_current_user),
-    service: TeamService = Depends(get_team_service),
-    player_service: PlayerService = Depends(get_player_service),
-):
-    teams = await service.list(current_user.id)
-    players = await player_service.list(current_user.id)
 
-    return templates.TemplateResponse(
-        request=request,
-        name="teams.html",
-        context={
-            "current_user": current_user,
-            "teams": teams,
-            "players": players,
-        },
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
+    service: TeamService = Depends(
+        get_team_service
+    ),
+
+    player_service: PlayerService = Depends(
+        get_player_service
+    ),
+):
+
+    teams = await service.list(
+        current_user.id
+    )
+
+    players = await player_service.list(
+        current_user.id
     )
 
 
-@app.post(
-    "/teams/{team_id}/delete",
-    include_in_schema=False,
-)
-async def delete_team_page(
-    team_id: int,
-    current_user: UserRead = Depends(get_current_user),
-    service: TeamService = Depends(get_team_service),
-):
-    try:
-        # Используем тот же TeamService, что и API.
-        await service.delete(
-            current_user.id,
-            team_id,
-        )
-    except NotFoundError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
+    return templates.TemplateResponse(
+        request=request,
 
-    return RedirectResponse(
-        url="/teams",
-        status_code=status.HTTP_303_SEE_OTHER,
+        name="teams.html",
+
+        context={
+            "current_user":
+                current_user,
+
+            "teams":
+                teams,
+
+            "players":
+                players,
+
+            "asset_version":
+                ASSET_VERSION,
+        },
     )
 
 
@@ -256,49 +388,95 @@ async def delete_team_page(
 )
 async def trainings_page(
     request: Request,
-    current_user: UserRead = Depends(get_current_user),
-    team_service: TeamService = Depends(get_team_service),
-    training_service: TrainingService = Depends(get_training_service),
+
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
+    team_service: TeamService = Depends(
+        get_team_service
+    ),
+
+    training_service: TrainingService = Depends(
+        get_training_service
+    ),
 ):
-    teams = await team_service.list(current_user.id)
+
+    teams = await team_service.list(
+        current_user.id
+    )
 
     selected_team = None
-    raw_team_id = request.query_params.get("team_id")
 
-    if raw_team_id and raw_team_id.isdigit():
-        candidate_id = int(raw_team_id)
+    raw_team_id = (
+        request
+        .query_params
+        .get("team_id")
+    )
+
+
+    if (
+        raw_team_id
+        and raw_team_id.isdigit()
+    ):
+
+        candidate_id = int(
+            raw_team_id
+        )
 
         selected_team = next(
             (
                 team
                 for team in teams
-                if team.id == candidate_id
+                if team.id
+                == candidate_id
             ),
             None,
         )
 
-    # Без ?team_id показываем первую доступную команду.
-    if selected_team is None and teams:
+
+    if (
+        selected_team is None
+        and teams
+    ):
+
         selected_team = teams[0]
+
 
     attendance_view = None
 
+
     if selected_team is not None:
+
         attendance_view = (
-            await training_service.get_attendance_view(
+            await training_service
+            .get_attendance_view(
                 current_user.id,
                 selected_team.id,
             )
         )
 
+
     return templates.TemplateResponse(
         request=request,
+
         name="trainings.html",
+
         context={
-            "current_user": current_user,
-            "teams": teams,
-            "selected_team": selected_team,
-            "attendance_view": attendance_view,
+            "current_user":
+                current_user,
+
+            "teams":
+                teams,
+
+            "selected_team":
+                selected_team,
+
+            "attendance_view":
+                attendance_view,
+
+            "asset_version":
+                ASSET_VERSION,
         },
     )
 
@@ -310,37 +488,64 @@ async def trainings_page(
 )
 async def all_trainings_page(
     request: Request,
+
     team_id: int,
-    current_user: UserRead = Depends(get_current_user),
-    team_service: TeamService = Depends(get_team_service),
-    training_service: TrainingService = Depends(get_training_service),
+
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
+    team_service: TeamService = Depends(
+        get_team_service
+    ),
+
+    training_service: TrainingService = Depends(
+        get_training_service
+    ),
 ):
+
     try:
+
         team = await team_service.get(
             current_user.id,
             team_id,
         )
 
+
         attendance_view = (
-            await training_service.get_all_attendance_view(
+            await training_service
+            .get_all_attendance_view(
                 current_user.id,
                 team_id,
             )
         )
 
+
     except NotFoundError as exc:
+
         raise HTTPException(
             status_code=404,
             detail=str(exc),
         ) from exc
 
+
     return templates.TemplateResponse(
         request=request,
+
         name="trainings_all.html",
+
         context={
-            "current_user": current_user,
-            "team": team,
-            "attendance_view": attendance_view,
+            "current_user":
+                current_user,
+
+            "team":
+                team,
+
+            "attendance_view":
+                attendance_view,
+
+            "asset_version":
+                ASSET_VERSION,
         },
     )
 
@@ -352,85 +557,39 @@ async def all_trainings_page(
 )
 async def web_upsert_attendance(
     payload: AttendanceUpsert,
-    current_user: UserRead = Depends(get_current_user),
-    service: TrainingService = Depends(get_training_service),
+
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
+    service: TrainingService = Depends(
+        get_training_service
+    ),
 ) -> AttendanceItemRead:
-    """Web JSON-route. Использует тот же сервис, что и API."""
+
     try:
-        return await service.upsert_attendance(
-            current_user.id,
-            payload,
+
+        return await (
+            service
+            .upsert_attendance(
+                current_user.id,
+                payload,
+            )
         )
 
     except NotFoundError as exc:
+
         raise HTTPException(
             status_code=404,
             detail=str(exc),
         ) from exc
 
     except ValidationServiceError as exc:
+
         raise HTTPException(
             status_code=422,
             detail=str(exc),
         ) from exc
-
-
-@app.post(
-    "/trainings/{training_id}/delete",
-    include_in_schema=False,
-)
-async def delete_training_page(
-    training_id: int,
-    request: Request,
-    current_user: UserRead = Depends(get_current_user),
-    training_service: TrainingService = Depends(get_training_service),
-):
-    try:
-        training = await training_service.get(
-            current_user.id,
-            training_id,
-        )
-
-        team_id = training.team_id
-
-        await training_service.delete(
-            current_user.id,
-            training_id,
-        )
-
-    except NotFoundError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    raw_return_team_id = request.query_params.get(
-        "team_id"
-    )
-
-    return_team_id = (
-        int(raw_return_team_id)
-        if raw_return_team_id
-        and raw_return_team_id.isdigit()
-        else team_id
-    )
-
-    return RedirectResponse(
-        url=f"/trainings?team_id={return_team_id}",
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
-
-
-@app.get(
-    "/trainings/{team_id}",
-    include_in_schema=False,
-)
-async def legacy_training_team_page(team_id: int):
-    """Старый URL сохраняем для совместимости."""
-    return RedirectResponse(
-        url=f"/trainings?team_id={team_id}",
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
 
 
 @app.get(
@@ -440,58 +599,54 @@ async def legacy_training_team_page(team_id: int):
 )
 async def absence_reasons_page(
     request: Request,
-    current_user: UserRead = Depends(get_current_user),
+
+    current_user: UserRead = Depends(
+        get_current_user
+    ),
+
     service: AbsenceReasonService = Depends(
         get_absence_reason_service
     ),
 ):
+
     reasons = await service.list(
         current_user.id
     )
 
+
     return templates.TemplateResponse(
         request=request,
+
         name="absence_reasons.html",
+
         context={
-            "current_user": current_user,
-            "reasons": reasons,
+            "current_user":
+                current_user,
+
+            "reasons":
+                reasons,
+
+            "asset_version":
+                ASSET_VERSION,
         },
     )
 
 
-@app.post(
-    "/absence-reasons/{reason_id}/delete",
-    include_in_schema=False,
-)
-async def delete_absence_reason_page(
-    reason_id: int,
-    current_user: UserRead = Depends(get_current_user),
-    service: AbsenceReasonService = Depends(
-        get_absence_reason_service
-    ),
-):
-    try:
-        await service.delete(
-            current_user.id,
-            reason_id,
-        )
-
-    except NotFoundError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    return RedirectResponse(
-        url="/absence-reasons",
-        status_code=status.HTTP_303_SEE_OTHER,
-    )
-
-
 if __name__ == "__main__":
+
     uvicorn.run(
         "src.main:app",
+
         host=settings.HOST,
+
         port=settings.PORT,
+
         reload=settings.DEBUG,
+
+        proxy_headers=True,
+
+        forwarded_allow_ips=(
+            settings
+            .FORWARDED_ALLOW_IPS
+        ),
     )

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     PORT: int = 8000
 
+    FORWARDED_ALLOW_IPS: str = "*"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

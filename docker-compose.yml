@@ -1,19 +1,12 @@
 services:
-
   db:
     image: postgres:16-alpine
-
     restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
-    ports:
-      # БД доступна локальному Python-приложению,
-      # но не публикуется на внешний интерфейс VDS.
-      - "127.0.0.1:5432:5432"
 
     volumes:
       - volleykarelia_postgres_data:/var/lib/postgresql/data
@@ -24,7 +17,6 @@ services:
           "CMD-SHELL",
           "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
         ]
-
       interval: 5s
       timeout: 3s
       retries: 10
@@ -42,12 +34,9 @@ services:
       - .env
 
     environment:
-
-      # Внутри Docker PostgreSQL доступен по hostname db.
-      # Значение из DATABASE_URL в .env с localhost намеренно заменяется.
+      # Внутри compose PostgreSQL доступен как db.
       DATABASE_URL: ${DOCKER_DATABASE_URL}
 
-      # Контейнер должен слушать все интерфейсы.
       HOST: 0.0.0.0
       PORT: 8000
 
@@ -55,16 +44,28 @@ services:
       db:
         condition: service_healthy
 
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    # App доступен только локально на VDS.
+    # Внешний HTTP/HTTPS принимает системный Nginx.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
     command:
-      [
-        "python3",
-        "-m",
-        "src.entrypoint"
-      ]
+      ["python3", "-m", "src.entrypoint"]
 
 
 volumes:
   volleykarelia_postgres_data:
+
