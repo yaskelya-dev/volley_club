@@ -84,27 +84,44 @@
     window.showToast = function (message, type = 'success') {
         toast.textContent = message;
         toast.className = `toast toast--${type} toast--visible`;
-
         window.clearTimeout(window.__toastTimer);
-
         window.__toastTimer = window.setTimeout(() => {
             toast.classList.remove('toast--visible');
         }, 3200);
     };
 
     window.apiRequest = async function (url, options = {}) {
+        const {
+            redirectOnUnauthorized = true,
+            ...fetchOptions
+        } = options;
+
         const response = await fetch(url, {
             credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
-                ...(options.headers || {})
+                ...(fetchOptions.headers || {})
             },
-            ...options
+            ...fetchOptions
         });
 
         if (response.status === 401) {
-            window.location.href = '/login';
-            return null;
+            let detail = 'Требуется авторизация.';
+
+            try {
+                const data = await response.json();
+
+                if (typeof data.detail === 'string') {
+                    detail = data.detail;
+                }
+            } catch (_) {}
+
+            if (redirectOnUnauthorized) {
+                window.location.href = '/login';
+                return null;
+            }
+
+            throw new Error(detail);
         }
 
         if (!response.ok) {
@@ -112,9 +129,10 @@
 
             try {
                 const data = await response.json();
-                detail = typeof data.detail === 'string'
-                    ? data.detail
-                    : detail;
+
+                if (typeof data.detail === 'string') {
+                    detail = data.detail;
+                }
             } catch (_) {}
 
             throw new Error(detail);
@@ -131,9 +149,7 @@
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const button = form.querySelector(
-                'button[type="submit"]'
-            );
+            const button = form.querySelector('button[type="submit"]');
 
             if (button) {
                 button.disabled = true;
@@ -143,12 +159,16 @@
                 new FormData(form).entries()
             );
 
+            const isLoginForm =
+                form.dataset.endpoint === '/api/v1/users/login';
+
             try {
-                await apiRequest(
+                const data = await apiRequest(
                     form.dataset.endpoint,
                     {
                         method: form.dataset.method || 'POST',
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        redirectOnUnauthorized: !isLoginForm
                     }
                 );
 
@@ -161,18 +181,17 @@
                 if (redirect) {
                     window.location.href = redirect;
                 } else {
-                    window.setTimeout(
-                        () => window.location.reload(),
-                        250
-                    );
+                    window.setTimeout(() => {
+                        window.location.reload();
+                    }, 250);
                 }
 
+                return data;
             } catch (error) {
                 showToast(
-                    error.message,
+                    error.message || 'Произошла ошибка',
                     'error'
                 );
-
             } finally {
                 if (button) {
                     button.disabled = false;
@@ -200,14 +219,12 @@
 
                 showToast('Удалено');
 
-                window.setTimeout(
-                    () => window.location.reload(),
-                    250
-                );
-
+                window.setTimeout(() => {
+                    window.location.reload();
+                }, 250);
             } catch (error) {
                 showToast(
-                    error.message,
+                    error.message || 'Произошла ошибка',
                     'error'
                 );
             }
@@ -215,6 +232,7 @@
     });
 })();
 </script>
+
 
 {% block scripts %}{% endblock %}
 </body>
