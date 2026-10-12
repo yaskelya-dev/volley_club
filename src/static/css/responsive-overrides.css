@@ -1,0 +1,412 @@
+/*
+ * Responsive fixes to append to the end of css/style.css.
+ * Keeping these as overrides makes the change low-risk and preserves the
+ * project's existing visual design.
+ */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+video,
+iframe,
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.container,
+.card,
+.auth-layout,
+.auth-card,
+.auth-visual,
+.content-grid,
+.team-card,
+.list-row,
+.reason-row,
+.attendance-view-card {
+  min-width: 0;
+}
+
+p,
+h1,
+h2,
+h3,
+strong,
+.nav__link,
+.person-chip,
+.auth-visual__copy {
+  overflow-wrap: anywhere;
+}
+
+/* A real collapsed mobile navigation replaces horizontal menu scrolling. */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-direction: column;
+  width: 42px;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.nav-toggle span {
+  display: block;
+  width: 19px;
+  height: 2px;
+  border-radius: 99px;
+  background: currentColor;
+  transition: transform .16s ease, opacity .16s ease;
+}
+
+.nav-toggle[aria-expanded="true"] span:first-child {
+  transform: translateY(5px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] span:last-child {
+  transform: translateY(-5px) rotate(-45deg);
+}
+
+.nav__link:focus-visible,
+.nav-toggle:focus-visible,
+.button:focus-visible,
+.chip-remove:focus-visible,
+.attendance-status-button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .25);
+  outline-offset: 2px;
+}
+
+/* Registration/login panels fit the viewport, including 320px-wide phones. */
+.auth-layout {
+  grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+}
+
+.auth-visual,
+.auth-card {
+  min-width: 0;
+}
+
+.auth-visual--register {
+  gap: 24px;
+  align-items: start;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(420px, 100%);
+}
+
+.metric-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Tables scroll inside their own wrapper, not across the whole document. */
+.table-wrap,
+.matrix-wrap,
+.attendance-table-wrap,
+.all-trainings-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attendance-table {
+  min-width: 560px;
+}
+
+.all-trainings-table {
+  min-width: max-content;
+}
+
+.data-table,
+.matrix-table {
+  min-width: 560px;
+}
+
+.attendance-modal {
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.attendance-modal__actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+}
+
+.error-page {
+  max-width: 620px;
+  margin: clamp(24px, 8vh, 80px) auto;
+}
+
+.error-page .empty-state__icon {
+  width: 64px;
+  height: 64px;
+  font-size: 1.1rem;
+  font-weight: 850;
+}
+
+.error-page__actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .auth-card {
+    width: 100%;
+  }
+
+  .auth-visual {
+    min-height: auto;
+  }
+
+  .auth-visual--register {
+    padding: clamp(18px, 4vw, 32px);
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .nav {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
+    order: initial;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px;
+    overflow: visible;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav.nav--open {
+    display: flex;
+  }
+
+  .nav__link {
+    width: 100%;
+    white-space: normal;
+    padding: 11px 12px;
+  }
+
+  .user-menu {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    justify-content: space-between;
+    min-width: 0;
+    padding-top: 3px;
+  }
+
+  .user-menu__name {
+    max-width: min(62vw, 260px);
+  }
+
+  .page-head__meta {
+    max-width: 100%;
+  }
+
+  .list-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inline-edit,
+  .reason-edit-form,
+  .member-add {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .inline-edit .input,
+  .reason-edit-form .input,
+  .member-add .input {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .team-card__top,
+  .team-card__bottom {
+    flex-wrap: wrap;
+  }
+
+  .team-card__top > *,
+  .team-card__bottom > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .training-add-form .field,
+  .training-selector {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    width: calc(100% - 16px);
+  }
+
+  .main-content {
+    padding-top: 18px;
+    padding-bottom: 36px;
+  }
+
+  .brand {
+    gap: 7px;
+    font-size: .94rem;
+  }
+
+  .brand__mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-menu__name {
+    max-width: 55vw;
+  }
+
+  .auth-layout {
+    gap: 12px;
+  }
+
+  .auth-card {
+    padding: 18px 15px;
+    border-radius: 16px;
+  }
+
+  .auth-card h1,
+  .page-head h1 {
+    font-size: clamp(1.85rem, 8vw, 2.2rem);
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  .auth-visual {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .auth-visual--register {
+    gap: 14px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .metric-card {
+    padding: 12px 10px;
+    border-radius: 12px;
+  }
+
+  .metric-card strong {
+    font-size: 1.55rem;
+  }
+
+  .metric-card span {
+    font-size: .8rem;
+  }
+
+  .auth-visual h2 {
+    font-size: clamp(1.7rem, 8vw, 2.1rem);
+    line-height: 1.05;
+  }
+
+  .card {
+    padding: 13px;
+  }
+
+  .button {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .attendance-modal {
+    width: calc(100% - 16px);
+    border-radius: 15px;
+  }
+
+  .attendance-modal__head,
+  .attendance-modal__body,
+  .attendance-modal__actions {
+    padding-left: 13px;
+    padding-right: 13px;
+  }
+
+  .attendance-modal__actions {
+    flex-wrap: wrap;
+  }
+
+  .attendance-modal__actions .button {
+    flex: 1 1 120px;
+  }
+
+  .reason-row {
+    padding: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

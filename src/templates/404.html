@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Страница не найдена — volleykarelia{% endblock %}
+
+{% block content %}
+<section class="card empty-state error-page">
+    <span class="empty-state__icon" aria-hidden="true">404</span>
+    <h1>Страница не найдена</h1>
+    <p>Похоже, такой страницы нет или ссылка устарела.</p>
+    <div class="error-page__actions">
+        <a class="button button--primary" href="/">На главную</a>
+        <button class="button button--secondary" type="button" onclick="history.back()">
+            Назад
+        </button>
+    </div>
+</section>
+{% endblock %}

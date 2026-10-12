@@ -27,22 +27,9 @@
         >
             <label class="field">
                 <span class="field__label">Название</span>
-                <input
-                    class="input"
-                    name="name"
-                    type="text"
-                    maxlength="150"
-                    required
-                    placeholder="ВК Карелия"
-                >
+                <input class="input" name="name" type="text" maxlength="150" required placeholder="ВК Карелия">
             </label>
-
-            <button
-                class="button button--primary button--wide"
-                type="submit"
-            >
-                Создать команду
-            </button>
+            <button class="button button--primary button--wide" type="submit">Создать команду</button>
         </form>
 
         <div class="tip-box">
@@ -54,17 +41,14 @@
     <section class="stack-vertical">
         {% if teams %}
             {% for team in teams %}
+            {% set available_players = available_players_by_team.get(team.id, []) %}
             <article class="card team-card">
                 <div class="team-card__top">
                     <div>
                         <span class="eyebrow">КОМАНДА #{{ team.id }}</span>
                         <h2>{{ team.name }}</h2>
                     </div>
-
-                    <a
-                        class="button button--secondary button--small"
-                        href="/trainings?team_id={{ team.id }}"
-                    >
+                    <a class="button button--secondary button--small" href="/trainings?team_id={{ team.id }}">
                         Открыть тренировки
                     </a>
                 </div>
@@ -76,18 +60,8 @@
                     data-method="PUT"
                     data-success="Команда обновлена"
                 >
-                    <input
-                        class="input input--compact"
-                        name="name"
-                        value="{{ team.name }}"
-                        required
-                    >
-                    <button
-                        class="button button--secondary button--small"
-                        type="submit"
-                    >
-                        Сохранить
-                    </button>
+                    <input class="input input--compact" name="name" value="{{ team.name }}" required>
+                    <button class="button button--secondary button--small" type="submit">Сохранить</button>
                 </form>
 
                 <div class="team-members">
@@ -100,18 +74,14 @@
                     <div class="chip-list">
                         {% for player in team.players %}
                         <div class="person-chip">
-                            <span class="avatar avatar--tiny">
-                                {{ player.name[:1]|upper }}
-                            </span>
+                            <span class="avatar avatar--tiny">{{ player.name[:1]|upper }}</span>
                             <span>{{ player.name }}</span>
                             <button
                                 type="button"
                                 class="chip-remove"
                                 data-remove-team="/api/v1/teams/{{ team.id }}/players/{{ player.id }}"
                                 aria-label="Убрать {{ player.name }}"
-                            >
-                                ×
-                            </button>
+                            >×</button>
                         </div>
                         {% endfor %}
                     </div>
@@ -133,41 +103,33 @@
                             class="input"
                             name="player_id"
                             aria-label="Выберите игрока"
-                            {% if not players %}disabled{% endif %}
+                            {% if not available_players %}disabled{% endif %}
                         >
-                            {% if players %}
+                            {% if available_players %}
                                 <option value="">Выберите игрока…</option>
-                                {% for player in players %}
-                                    <option value="{{ player.id }}">
-                                        {{ player.name }}
-                                    </option>
+                                {% for player in available_players %}
+                                <option value="{{ player.id }}">{{ player.name }}</option>
                                 {% endfor %}
+                            {% elif players %}
+                                <option value="">Все доступные игроки уже добавлены в команду</option>
                             {% else %}
-                                <option>Сначала создайте игрока</option>
+                                <option value="">Сначала создайте игрока</option>
                             {% endif %}
                         </select>
 
                         <button
                             class="button button--primary button--small"
                             type="submit"
-                            {% if not players %}disabled{% endif %}
-                        >
-                            Добавить в состав
-                        </button>
+                            {% if not available_players %}disabled{% endif %}
+                        >Добавить в состав</button>
                     </form>
 
-                    {# Важно: обычный POST не зависит от нестандартного method="delete" в HTML. #}
                     <form
                         action="/teams/{{ team.id }}/delete"
                         method="post"
                         onsubmit="return confirm('Удалить команду «{{ team.name }}» вместе с её тренировками?')"
                     >
-                        <button
-                            class="button button--danger button--small"
-                            type="submit"
-                        >
-                            Удалить команду
-                        </button>
+                        <button class="button button--danger button--small" type="submit">Удалить команду</button>
                     </form>
                 </div>
             </article>
@@ -188,8 +150,8 @@
 document.querySelectorAll('[data-team-form]').forEach((form) => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-
-        const playerId = form.querySelector('[name="player_id"]').value;
+        const select = form.querySelector('[name="player_id"]');
+        const playerId = select ? select.value : '';
 
         if (!playerId) {
             showToast('Выберите игрока', 'error');
@@ -198,6 +160,8 @@ document.querySelectorAll('[data-team-form]').forEach((form) => {
 
         const teamId = form.dataset.teamId;
         const endpoint = `/api/v1/teams/${teamId}/players/${playerId}`;
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) submitButton.disabled = true;
 
         try {
             await apiRequest(endpoint, { method: 'POST' });
@@ -205,6 +169,8 @@ document.querySelectorAll('[data-team-form]').forEach((form) => {
             window.setTimeout(() => window.location.reload(), 250);
         } catch (error) {
             showToast(error.message, 'error');
+        } finally {
+            if (submitButton) submitButton.disabled = false;
         }
     });
 });
@@ -212,13 +178,8 @@ document.querySelectorAll('[data-team-form]').forEach((form) => {
 document.querySelectorAll('[data-remove-team]').forEach((button) => {
     button.addEventListener('click', async () => {
         if (!window.confirm('Убрать игрока из команды?')) return;
-
         try {
-            await apiRequest(
-                button.dataset.removeTeam,
-                { method: 'DELETE' }
-            );
-
+            await apiRequest(button.dataset.removeTeam, { method: 'DELETE' });
             showToast('Игрок убран');
             window.setTimeout(() => window.location.reload(), 250);
         } catch (error) {
